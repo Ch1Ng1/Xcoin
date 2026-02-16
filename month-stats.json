@@ -1,0 +1,74 @@
+﻿{
+    "2019":  {
+                 "totalDays":  28,
+                 "present":  28,
+                 "missing":  0,
+                 "min":  14.51,
+                 "max":  186.97,
+                 "avg":  100.8568,
+                 "median":  97.48500000000001
+             },
+    "2020":  {
+                 "totalDays":  29,
+                 "present":  29,
+                 "missing":  0,
+                 "min":  206.5,
+                 "max":  395.23,
+                 "avg":  301.3721,
+                 "median":  297.04
+             },
+    "2021":  {
+                 "totalDays":  28,
+                 "present":  28,
+                 "missing":  0,
+                 "min":  401.42,
+                 "max":  604.98,
+                 "avg":  497.2868,
+                 "median":  495.95
+             },
+    "2022":  {
+                 "totalDays":  28,
+                 "present":  28,
+                 "missing":  0,
+                 "min":  590.81,
+                 "max":  815.05,
+                 "avg":  699.7129,
+                 "median":  699.4200000000001
+             },
+    "2023":  {
+                 "totalDays":  28,
+                 "present":  28,
+                 "missing":  0,
+                 "min":  770.26,
+                 "max":  1024.22,
+                 "avg":  900.3818,
+                 "median":  895.85
+             },
+    "2024":  {
+                 "totalDays":  29,
+                 "present":  29,
+                 "missing":  0,
+                 "min":  961.97,
+                 "max":  1237.2,
+                 "avg":  1098.9503,
+                 "median":  1093.73
+             },
+    "2025":  {
+                 "totalDays":  28,
+                 "present":  28,
+                 "missing":  0,
+                 "min":  1152.41,
+                 "max":  1443.84,
+                 "avg":  1300.3839,
+                 "median":  1296.92
+             },
+    "2026":  {
+                 "totalDays":  28,
+                 "present":  28,
+                 "missing":  0,
+                 "min":  1340.97,
+                 "max":  1657.27,
+                 "avg":  1500.1,
+                 "median":  1501.2649999999999
+             }
+}
