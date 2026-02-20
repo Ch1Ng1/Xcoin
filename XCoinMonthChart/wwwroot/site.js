@@ -14,16 +14,18 @@ async function loadChart() {
   const canvas = document.getElementById('chartCanvas');
   const fallbackImg = document.getElementById('chartFallback');
   const status = document.getElementById('status');
+  const coinSelect = document.getElementById('coinSelect');
+  const coin = coinSelect ? coinSelect.value : 'bitcoin';
   if (status) status.textContent = 'Loading...';
   fallbackImg.style.display = 'none';
 
   try {
-    const res = await fetch(`/api/monthly-averages?t=${Date.now()}`);
+    const res = await fetch(`/api/monthly-averages?coin=${encodeURIComponent(coin)}&t=${Date.now()}`);
     if (!res.ok) {
       if (status) status.textContent = 'Network error: ' + res.status;
       fallbackImg.style.display = '';
       canvas.style.display = 'none';
-      fallbackImg.src = `/chart?t=${Date.now()}`;
+      fallbackImg.src = `/chart?coin=${encodeURIComponent(coin)}&t=${Date.now()}`;
       return;
     }
 
@@ -32,7 +34,7 @@ async function loadChart() {
       if (status) status.textContent = 'No data available.';
       fallbackImg.style.display = '';
       canvas.style.display = 'none';
-      fallbackImg.src = `/chart?t=${Date.now()}`;
+      fallbackImg.src = `/chart?coin=${encodeURIComponent(coin)}&t=${Date.now()}`;
       return;
     }
     try {
@@ -44,14 +46,14 @@ async function loadChart() {
       if (status) status.textContent = 'Render error: ' + (renderErr && renderErr.message ? renderErr.message : String(renderErr));
       fallbackImg.style.display = '';
       canvas.style.display = 'none';
-      fallbackImg.src = `/chart?t=${Date.now()}`;
+      fallbackImg.src = `/chart?coin=${encodeURIComponent(coin)}&t=${Date.now()}`;
     }
   }
   catch (err) {
     if (status) status.textContent = 'Network error: ' + (err.message || err);
     fallbackImg.style.display = '';
     canvas.style.display = 'none';
-    fallbackImg.src = `/chart?t=${Date.now()}`;
+    fallbackImg.src = `/chart?coin=${encodeURIComponent(coin)}&t=${Date.now()}`;
   }
 }
 
@@ -76,6 +78,25 @@ function renderChartFromJson(data) {
     'rgba(153, 102, 255, 1)',  // Purple
     'rgba(255, 159, 64, 1)'    // Orange
   ];
+
+  // Calculate min and max price for consistent scales
+  let minPrice = Infinity;
+  let maxPrice = -Infinity;
+  years.forEach(year => {
+    const yearData = data[year];
+    Object.values(yearData).forEach(price => {
+      if (price !== null && price !== undefined && isFinite(price)) {
+        minPrice = Math.min(minPrice, price);
+        maxPrice = Math.max(maxPrice, price);
+      }
+    });
+  });
+  if (minPrice === Infinity) minPrice = 0;
+  if (maxPrice === -Infinity) maxPrice = 100;
+  // Add some padding
+  const padding = (maxPrice - minPrice) * 0.1;
+  minPrice = Math.max(0, minPrice - padding);
+  maxPrice += padding;
 
   years.forEach((year, index) => {
     const yearData = data[year];
@@ -125,6 +146,21 @@ function renderChartFromJson(data) {
             text: 'Price (USD)'
           },
           beginAtZero: false,
+          min: minPrice,
+          max: maxPrice,
+          ticks: { callback: function(v){ return v>=1000?('$'+(v/1000).toFixed(1)+'k'):('$'+v); } }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Price (USD)'
+          },
+          beginAtZero: false,
+          min: minPrice,
+          max: maxPrice,
           ticks: { callback: function(v){ return v>=1000?('$'+(v/1000).toFixed(1)+'k'):('$'+v); } }
         }
       },
@@ -138,4 +174,8 @@ function renderChartFromJson(data) {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadChart();
+  const coinSelect = document.getElementById('coinSelect');
+  if (coinSelect) {
+    coinSelect.addEventListener('change', loadChart);
+  }
 });

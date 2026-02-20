@@ -16,44 +16,113 @@ public class DataFetcher
         Directory.CreateDirectory(_cacheDir);
     }
 
-    public async Task<Dictionary<int, Dictionary<int, double>>> GetMonthlyAveragesAsync()
+    public async Task<Dictionary<int, Dictionary<int, double>>> GetMonthlyAveragesAsync(string coin = "bitcoin")
     {
-        // Mock data with realistic Bitcoin prices for last 5 years
         var results = new Dictionary<int, Dictionary<int, double>>();
         int currentYear = DateTime.UtcNow.Year;
-        var basePrices = new Dictionary<int, double[]>
-        {
-            {2021, new double[] {33000, 45000, 58000, 63000, 37000, 35000, 33000, 47000, 43000, 61000, 65000, 47000}},
-            {2022, new double[] {47000, 44000, 47000, 46000, 38000, 30000, 20000, 24000, 20000, 19000, 17000, 17000}},
-            {2023, new double[] {17000, 23000, 28000, 30000, 27000, 30000, 31000, 29000, 26000, 34000, 37000, 42000}},
-            {2024, new double[] {42000, 52000, 70000, 63000, 61000, 64000, 58000, 59000, 55000, 63000, 90000, 95000}},
-            {2025, new double[] {95000, 85000, 80000, 90000, 95000, 100000, 95000, 85000, 75000, 80000, 85000, 95000}},
-            {2026, new double[] {95000, 100000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}} // Partial for current year
-        };
 
         for (int year = currentYear - 4; year <= currentYear; year++)
         {
-            if (basePrices.ContainsKey(year))
+            Dictionary<int, double>? monthlyData;
+            if (year == currentYear)
             {
-                var monthly = new Dictionary<int, double>();
-                for (int month = 1; month <= 12; month++)
-                {
-                    double price = basePrices[year][month - 1];
-                    if (price > 0)
-                        monthly[month] = price;
-                }
-                if (monthly.Count > 0)
-                    results[year] = monthly;
+                // Use real API data for current year
+                monthlyData = await GetYearlyMonthlyAveragesAsync(coin, year);
+            }
+            else
+            {
+                // Use mock data for past years
+                monthlyData = GetMockMonthlyAverages(coin, year);
+            }
+
+            if (monthlyData != null && monthlyData.Count > 0)
+            {
+                results[year] = monthlyData;
             }
         }
+
         return results;
     }
 
-    private async Task<Dictionary<int, double>?> GetYearlyMonthlyAveragesAsync(int year)
+    private Dictionary<int, double>? GetMockMonthlyAverages(string coin, int year)
     {
+        var basePrices = new Dictionary<string, Dictionary<int, double[]>>()
+        {
+            ["bitcoin"] = new Dictionary<int, double[]>
+            {
+                {2021, new double[] {33000, 45000, 58000, 63000, 37000, 35000, 33000, 47000, 43000, 61000, 65000, 47000}},
+                {2022, new double[] {47000, 44000, 47000, 46000, 38000, 30000, 20000, 24000, 20000, 19000, 17000, 17000}},
+                {2023, new double[] {17000, 23000, 28000, 30000, 27000, 30000, 31000, 29000, 26000, 34000, 37000, 42000}},
+                {2024, new double[] {42000, 52000, 70000, 63000, 61000, 64000, 58000, 59000, 55000, 63000, 90000, 95000}},
+                {2025, new double[] {95000, 85000, 80000, 90000, 95000, 100000, 95000, 85000, 75000, 80000, 85000, 95000}},
+                {2026, new double[] {95000, 100000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}} // Partial for current year
+            },
+            ["ethereum"] = new Dictionary<int, double[]>
+            {
+                {2021, new double[] {2000, 3000, 3500, 4000, 2500, 2200, 1800, 3200, 2900, 4300, 4700, 3700}},
+                {2022, new double[] {3700, 3400, 3500, 3300, 2800, 1800, 1000, 1600, 1300, 1200, 1100, 1200}},
+                {2023, new double[] {1200, 1600, 1800, 1900, 1700, 1800, 1900, 1700, 1600, 2000, 2200, 2500}},
+                {2024, new double[] {2500, 3200, 3800, 3500, 3300, 3500, 3200, 3300, 3000, 3500, 4000, 4200}},
+                {2025, new double[] {4200, 3800, 3500, 4000, 4200, 4500, 4200, 3800, 3300, 3500, 3800, 4200}},
+                {2026, new double[] {4200, 4500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}} // Partial for current year
+            },
+            ["solana"] = new Dictionary<int, double[]>
+            {
+                {2021, new double[] {20, 50, 100, 150, 200, 180, 140, 160, 130, 200, 250, 170}},
+                {2022, new double[] {170, 150, 100, 120, 90, 30, 20, 40, 30, 25, 20, 15}},
+                {2023, new double[] {15, 20, 25, 30, 20, 25, 30, 25, 20, 30, 40, 50}},
+                {2024, new double[] {50, 80, 120, 150, 140, 160, 130, 140, 120, 150, 180, 200}},
+                {2025, new double[] {200, 180, 150, 170, 190, 200, 180, 160, 140, 150, 170, 190}},
+                {2026, new double[] {190, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}} // Partial for current year
+            },
+            ["xrp"] = new Dictionary<int, double[]>
+            {
+                {2021, new double[] {0.5, 0.8, 1.0, 1.2, 0.9, 0.7, 0.6, 1.0, 0.9, 1.3, 1.4, 1.0}},
+                {2022, new double[] {1.0, 0.9, 0.8, 0.7, 0.6, 0.4, 0.3, 0.5, 0.4, 0.3, 0.3, 0.3}},
+                {2023, new double[] {0.3, 0.4, 0.5, 0.5, 0.4, 0.5, 0.5, 0.4, 0.4, 0.6, 0.7, 0.8}},
+                {2024, new double[] {0.8, 0.9, 1.0, 0.9, 0.8, 0.9, 0.8, 0.8, 0.7, 0.9, 1.0, 1.1}},
+                {2025, new double[] {1.1, 1.0, 0.9, 1.0, 1.1, 1.2, 1.1, 1.0, 0.9, 1.0, 1.1, 1.2}},
+                {2026, new double[] {1.2, 1.3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}} // Partial for current year
+            },
+            ["cardano"] = new Dictionary<int, double[]>
+            {
+                {2021, new double[] {1.0, 1.5, 2.0, 2.5, 1.8, 1.5, 1.2, 2.0, 1.8, 2.5, 2.8, 2.0}},
+                {2022, new double[] {2.0, 1.8, 1.5, 1.3, 1.0, 0.5, 0.3, 0.6, 0.5, 0.4, 0.3, 0.3}},
+                {2023, new double[] {0.3, 0.4, 0.5, 0.5, 0.4, 0.5, 0.5, 0.4, 0.4, 0.6, 0.7, 0.8}},
+                {2024, new double[] {0.8, 1.0, 1.2, 1.1, 1.0, 1.1, 1.0, 1.0, 0.9, 1.1, 1.3, 1.4}},
+                {2025, new double[] {1.4, 1.3, 1.1, 1.2, 1.4, 1.5, 1.4, 1.3, 1.1, 1.2, 1.3, 1.4}},
+                {2026, new double[] {1.4, 1.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}} // Partial for current year
+            }
+        };
+
+        if (!basePrices.ContainsKey(coin) || !basePrices[coin].ContainsKey(year))
+            return null;
+
+        var monthly = new Dictionary<int, double>();
+        for (int month = 1; month <= 12; month++)
+        {
+            double price = basePrices[coin][year][month - 1];
+            if (price > 0)
+                monthly[month] = price;
+        }
+        return monthly.Count > 0 ? monthly : null;
+    }
+
+    private async Task<Dictionary<int, double>?> GetYearlyMonthlyAveragesAsync(string coin, int year)
+    {
+        var coinId = coin switch
+        {
+            "bitcoin" => "bitcoin",
+            "ethereum" => "ethereum",
+            "solana" => "solana",
+            "xrp" => "ripple",
+            "cardano" => "cardano",
+            _ => "bitcoin"
+        };
+
         var from = new DateTimeOffset(new DateTime(year, 1, 1)).ToUnixTimeSeconds();
         var to = new DateTimeOffset(new DateTime(year, 12, 31, 23, 59, 59)).ToUnixTimeSeconds();
-        var cache = Path.Combine(_cacheDir, $"{year}.json");
+        var cache = Path.Combine(_cacheDir, $"{coinId}-{year}.json");
         string? json = null;
 
         bool cacheExists = File.Exists(cache);
@@ -75,7 +144,7 @@ public class DataFetcher
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
             }
 
-            var url = $"https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=usd&from={from}&to={to}";
+            var url = $"https://api.coingecko.com/api/v3/coins/{coinId}/market_chart/range?vs_currency=usd&from={from}&to={to}";
             int maxAttempts = 3;
             for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {

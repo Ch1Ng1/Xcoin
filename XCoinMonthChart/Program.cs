@@ -21,12 +21,13 @@ app.UseStaticFiles();
 
 app.MapGet("/health", () => Results.Json(new { status = "ok", now = DateTime.UtcNow }));
 
-app.MapGet("/chart", async (DataFetcher fetcher, ChartRenderer renderer, ILogger<Program> logger) =>
+app.MapGet("/chart", async (DataFetcher fetcher, ChartRenderer renderer, ILogger<Program> logger, string? coin) =>
 {
     try
     {
-        logger.LogInformation("Chart request");
-        var data = await fetcher.GetMonthlyAveragesAsync();
+        coin ??= "bitcoin";
+        logger.LogInformation("Chart request for {Coin}", coin);
+        var data = await fetcher.GetMonthlyAveragesAsync(coin);
         var png = renderer.RenderMonthlyAverages(data);
         return Results.File(png, "image/png");
     }
@@ -38,12 +39,13 @@ app.MapGet("/chart", async (DataFetcher fetcher, ChartRenderer renderer, ILogger
 });
 
 // API: returns monthly average prices per year and month
-app.MapGet("/api/monthly-averages", async (DataFetcher fetcher, ILogger<Program> logger) =>
+app.MapGet("/api/monthly-averages", async (DataFetcher fetcher, ILogger<Program> logger, string? coin) =>
 {
     try
     {
-        logger.LogInformation("Monthly averages request");
-        var data = await fetcher.GetMonthlyAveragesAsync();
+        coin ??= "bitcoin";
+        logger.LogInformation("Monthly averages request for {Coin}", coin);
+        var data = await fetcher.GetMonthlyAveragesAsync(coin);
         return Results.Json(data);
     }
     catch (Exception ex)
