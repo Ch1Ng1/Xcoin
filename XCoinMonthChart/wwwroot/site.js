@@ -1,28 +1,16 @@
-function fillMonths() {
-  const sel = document.getElementById('month');
-  sel.innerHTML = '';
-  for (let m = 1; m <= 12; m++) {
-    const o = document.createElement('option');
-    o.value = m;
-    o.text = new Date(2000, m-1, 1).toLocaleString(undefined, { month: 'long' });
-    sel.appendChild(o);
-  }
-  sel.value = new Date().getMonth() + 1;
-}
-
 async function loadChart() {
   const canvas = document.getElementById('chartCanvas');
   const fallbackImg = document.getElementById('chartFallback');
   const status = document.getElementById('status');
   const coinSelect = document.getElementById('coinSelect');
   const coin = coinSelect ? coinSelect.value : 'bitcoin';
-  if (status) status.textContent = 'Loading...';
+  if (status) status.textContent = 'Loading chart data...';
   fallbackImg.style.display = 'none';
 
   try {
     const res = await fetch(`/api/monthly-averages?coin=${encodeURIComponent(coin)}&t=${Date.now()}`);
     if (!res.ok) {
-      if (status) status.textContent = 'Network error: ' + res.status;
+      if (status) status.textContent = `Failed to load data for ${coin} (HTTP ${res.status}). Showing cached chart.`;
       fallbackImg.style.display = '';
       canvas.style.display = 'none';
       fallbackImg.src = `/chart?coin=${encodeURIComponent(coin)}&t=${Date.now()}`;
@@ -31,7 +19,7 @@ async function loadChart() {
 
     const data = await res.json();
     if (Object.keys(data).length === 0) {
-      if (status) status.textContent = 'No data available.';
+      if (status) status.textContent = `No data available for ${coin}.`;
       fallbackImg.style.display = '';
       canvas.style.display = 'none';
       fallbackImg.src = `/chart?coin=${encodeURIComponent(coin)}&t=${Date.now()}`;
@@ -43,14 +31,14 @@ async function loadChart() {
     }
     catch (renderErr) {
       console.error('Render error', renderErr);
-      if (status) status.textContent = 'Render error: ' + (renderErr && renderErr.message ? renderErr.message : String(renderErr));
+      if (status) status.textContent = `Failed to render chart for ${coin}. Showing server-generated chart.`;
       fallbackImg.style.display = '';
       canvas.style.display = 'none';
       fallbackImg.src = `/chart?coin=${encodeURIComponent(coin)}&t=${Date.now()}`;
     }
   }
   catch (err) {
-    if (status) status.textContent = 'Network error: ' + (err.message || err);
+    if (status) status.textContent = `Failed to load data for ${coin}. Showing cached chart.`;
     fallbackImg.style.display = '';
     canvas.style.display = 'none';
     fallbackImg.src = `/chart?coin=${encodeURIComponent(coin)}&t=${Date.now()}`;
@@ -131,8 +119,8 @@ function renderChartFromJson(data) {
       datasets: datasets
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
+      responsive: false,
+      maintainAspectRatio: true,
       scales: {
         x: {
           title: {

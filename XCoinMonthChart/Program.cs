@@ -25,10 +25,15 @@ app.MapGet("/chart", async (DataFetcher fetcher, ChartRenderer renderer, ILogger
 {
     try
     {
+        var validCoins = new[] { "bitcoin", "ethereum", "solana", "xrp", "cardano" };
         coin ??= "bitcoin";
+        if (!validCoins.Contains(coin.ToLower()))
+        {
+            coin = "bitcoin";
+        }
         logger.LogInformation("Chart request for {Coin}", coin);
         var data = await fetcher.GetMonthlyAveragesAsync(coin);
-        var png = renderer.RenderMonthlyAverages(data);
+        var png = renderer.RenderMonthlyAverages(data, coin);
         return Results.File(png, "image/png");
     }
     catch (Exception ex)
@@ -43,7 +48,12 @@ app.MapGet("/api/monthly-averages", async (DataFetcher fetcher, ILogger<Program>
 {
     try
     {
+        var validCoins = new[] { "bitcoin", "ethereum", "solana", "xrp", "cardano" };
         coin ??= "bitcoin";
+        if (!validCoins.Contains(coin.ToLower()))
+        {
+            coin = "bitcoin";
+        }
         logger.LogInformation("Monthly averages request for {Coin}", coin);
         var data = await fetcher.GetMonthlyAveragesAsync(coin);
         return Results.Json(data);

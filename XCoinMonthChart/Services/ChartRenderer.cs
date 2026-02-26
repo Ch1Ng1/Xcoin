@@ -6,7 +6,7 @@ namespace XCoinMonthChart.Services;
 
 public class ChartRenderer
 {
-    public byte[] RenderMonthlyAverages(Dictionary<int, Dictionary<int, double>> data)
+    public byte[] RenderMonthlyAverages(Dictionary<int, Dictionary<int, double>> data, string coin = "bitcoin")
     {
         if (data == null || data.Count == 0)
         {
@@ -52,8 +52,8 @@ public class ChartRenderer
             return msP.ToArray();
         }
 
-        // larger canvas for clarity
-        var plt = new ScottPlot.Plot(1200, 480);
+        // Compact canvas for better display
+        var plt = new ScottPlot.Plot(800, 400);
         plt.Style(figureBackground: Color.White, dataBackground: Color.White);
 
         var colors = new[] { Color.Red, Color.Blue, Color.Yellow, Color.Green, Color.Purple, Color.Orange };
@@ -87,7 +87,7 @@ public class ChartRenderer
         plt.YLabel("Average Price (USD)");
         plt.Layout(right: 0.82f, left: 60, top: 60);
 
-        plt.Title("Bitcoin Monthly Average Prices by Year");
+        plt.Title($"{char.ToUpper(coin[0]) + coin[1..]} Monthly Average Prices by Year");
 
         // Format x-axis as dates
         plt.XAxis.DateTimeFormat(true);
