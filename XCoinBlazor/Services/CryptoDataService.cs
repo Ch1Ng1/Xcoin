@@ -25,7 +25,11 @@ public class CryptoDataService
         try
         {
             var assembly = Assembly.GetExecutingAssembly();
+            var allResources = assembly.GetManifestResourceNames();
+            Console.WriteLine($"Available resources: {string.Join(", ", allResources)}");
+
             var resourceName = "XCoinBlazor.wwwroot.data.month-stats.json";
+            Console.WriteLine($"Looking for resource: {resourceName}");
 
             using var stream = assembly.GetManifestResourceStream(resourceName);
             if (stream == null)
@@ -36,6 +40,7 @@ public class CryptoDataService
 
             using var reader = new StreamReader(stream);
             var json = await reader.ReadToEndAsync();
+            Console.WriteLine($"Loaded JSON length: {json.Length}");
             var data = JsonSerializer.Deserialize<Dictionary<int, MonthlyStats>>(json);
             return new MonthlyStatsData { Years = data ?? new Dictionary<int, MonthlyStats>() };
         }
@@ -68,7 +73,11 @@ public class CryptoDataService
         try
         {
             var assembly = Assembly.GetExecutingAssembly();
+            var allResources = assembly.GetManifestResourceNames();
+            Console.WriteLine($"Available resources: {string.Join(", ", allResources)}");
+
             var resourceName = "XCoinBlazor.wwwroot.data.resp.json";
+            Console.WriteLine($"Looking for resource: {resourceName}");
 
             using var stream = assembly.GetManifestResourceStream(resourceName);
             if (stream == null)
@@ -79,6 +88,7 @@ public class CryptoDataService
 
             using var reader = new StreamReader(stream);
             var json = await reader.ReadToEndAsync();
+            Console.WriteLine($"Loaded JSON length: {json.Length}");
             var data = JsonSerializer.Deserialize<Dictionary<int, List<double>>>(json);
             return new DailyPricesData { Years = data ?? new Dictionary<int, List<double>>() };
         }
