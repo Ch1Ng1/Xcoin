@@ -34,7 +34,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: ./build/wwwroot
+        path: ../build/wwwroot
 
   deploy:
     if: github.ref == 'refs/heads/main'
