@@ -15,8 +15,8 @@ public class CryptoDataService
         // Simulate async operation
         await Task.Delay(100);
 
-        // Return hardcoded monthly averages up to March 2026
-        return new Dictionary<int, Dictionary<int, double>>
+        // Base data for Bitcoin
+        var baseData = new Dictionary<int, Dictionary<int, double>>
         {
             {
                 2019, new Dictionary<int, double>
@@ -74,6 +74,31 @@ public class CryptoDataService
                 }
             }
         };
+
+        // Apply multiplier based on cryptocurrency
+        double multiplier = cryptoName.ToLower() switch
+        {
+            "bitcoin" => 1.0,
+            "ethereum" => 0.1,
+            "solana" => 0.01,
+            "xrp" => 0.001,
+            "cardano" => 0.005,
+            _ => 1.0
+        };
+
+        var adjustedData = new Dictionary<int, Dictionary<int, double>>();
+        foreach (var yearEntry in baseData)
+        {
+            var year = yearEntry.Key;
+            var monthlyPrices = new Dictionary<int, double>();
+            foreach (var monthEntry in yearEntry.Value)
+            {
+                monthlyPrices[monthEntry.Key] = Math.Round(monthEntry.Value * multiplier, 2);
+            }
+            adjustedData[year] = monthlyPrices;
+        }
+
+        return adjustedData;
     }
 
     /// <summary>

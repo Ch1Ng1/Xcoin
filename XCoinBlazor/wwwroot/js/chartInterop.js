@@ -37,7 +37,7 @@ window.initializeChart = (monthlyData) => {
         const prices = [];
 
         for (let month = 1; month <= 12; month++) {
-            prices.push(yearData[month] || null);
+            prices.push(yearData[month] || 0);
         }
 
         datasets.push({
