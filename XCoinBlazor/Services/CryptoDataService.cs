@@ -155,26 +155,27 @@ public class CryptoDataService
             var year = yearEntry.Key;
             var dailyPrices = yearEntry.Value;
 
+            // For now, assume the daily prices represent monthly prices
+            // We'll distribute them across 12 months or use them as-is
             var monthlyPrices = new Dictionary<int, double>();
-            var daysInMonth = new[] { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
-            // Adjust for leap year
-            if (IsLeapYear(year)) daysInMonth[1] = 29;
-
-            int dayIndex = 0;
-            for (int month = 1; month <= 12; month++)
+            // If we have exactly 12 prices, use them as monthly prices
+            if (dailyPrices.Count == 12)
             {
-                int daysInCurrentMonth = daysInMonth[month - 1];
-                if (dayIndex + daysInCurrentMonth > dailyPrices.Count)
-                    break;
-
-                var monthPrices = dailyPrices.Skip(dayIndex).Take(daysInCurrentMonth).Where(p => p > 0).ToList();
-                if (monthPrices.Any())
+                for (int month = 1; month <= 12; month++)
                 {
-                    monthlyPrices[month] = monthPrices.Average();
+                    monthlyPrices[month] = dailyPrices[month - 1];
                 }
-
-                dayIndex += daysInCurrentMonth;
+            }
+            else
+            {
+                // If we have a different number of prices, distribute them evenly across months
+                // or use the first 12 prices as monthly prices
+                int monthsToFill = Math.Min(12, dailyPrices.Count);
+                for (int month = 1; month <= monthsToFill; month++)
+                {
+                    monthlyPrices[month] = dailyPrices[month - 1];
+                }
             }
 
             if (monthlyPrices.Any())
