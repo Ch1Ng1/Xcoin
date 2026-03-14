@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./XCoinBlazor
 
     steps:
     - name: Checkout
@@ -20,13 +23,13 @@ jobs:
         dotnet-version: 9.0.x
 
     - name: Restore dependencies
-      run: dotnet restore ./XCoinBlazor/XCoinBlazor.csproj
+      run: dotnet restore
 
     - name: Build
-      run: dotnet build ./XCoinBlazor/XCoinBlazor.csproj --configuration Release --no-restore
+      run: dotnet build --configuration Release --no-restore
 
     - name: Publish
-      run: dotnet publish ./XCoinBlazor/XCoinBlazor.csproj --configuration Release --output build --no-build
+      run: dotnet publish --configuration Release --output ../build --no-build
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
