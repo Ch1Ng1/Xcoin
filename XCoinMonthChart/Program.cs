@@ -1,9 +1,13 @@
-using System.Text.Json;
-using System.Linq;
 using XCoinMonthChart.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Register services (each with a single responsibility)
 builder.Services.AddHttpClient();
+builder.Services.AddSingleton<CoinValidator>();
+builder.Services.AddSingleton<MockPriceProvider>();
+builder.Services.AddSingleton<FileCacheService>();
+builder.Services.AddSingleton<CoinGeckoClient>();
 builder.Services.AddSingleton<DataFetcher>();
 builder.Services.AddSingleton<ChartRenderer>();
 
@@ -12,9 +16,11 @@ builder.Logging.AddConsole();
 
 var app = builder.Build();
 
-// serve a tiny transparent PNG for favicon requests to avoid 404 in browser
-var _faviconBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
-app.MapGet("/favicon.ico", () => Results.File(_faviconBytes, "image/png"));
+var coinValidator = app.Services.GetRequiredService<CoinValidator>();
+
+// Serve a tiny transparent PNG for favicon requests to avoid 404 in browser
+var faviconBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
+app.MapGet("/favicon.ico", () => Results.File(faviconBytes, "image/png"));
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -25,43 +31,32 @@ app.MapGet("/chart", async (DataFetcher fetcher, ChartRenderer renderer, ILogger
 {
     try
     {
-        var validCoins = new[] { "bitcoin", "ethereum", "solana", "xrp", "cardano" };
-        coin ??= "bitcoin";
-        if (!validCoins.Contains(coin.ToLower()))
-        {
-            coin = "bitcoin";
-        }
+        coin = coinValidator.Normalize(coin);
         logger.LogInformation("Chart request for {Coin}", coin);
-        var data = await fetcher.GetMonthlyAveragesAsync(coin);
-        var png = renderer.RenderMonthlyAverages(data, coin);
-        return Results.File(png, "image/png");
+        var pricesByYear = await fetcher.GetMonthlyAveragesAsync(coin);
+        var pngBytes = renderer.RenderMonthlyAverages(pricesByYear, coin);
+        return Results.File(pngBytes, "image/png");
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Failed to render chart");
-        return Results.Problem(detail: ex.Message);
+        logger.LogError(ex, "Failed to render chart for {Coin}", coin);
+        return Results.Problem(detail: "Chart generation failed. Please try again later.");
     }
 });
 
-// API: returns monthly average prices per year and month
 app.MapGet("/api/monthly-averages", async (DataFetcher fetcher, ILogger<Program> logger, string? coin) =>
 {
     try
     {
-        var validCoins = new[] { "bitcoin", "ethereum", "solana", "xrp", "cardano" };
-        coin ??= "bitcoin";
-        if (!validCoins.Contains(coin.ToLower()))
-        {
-            coin = "bitcoin";
-        }
+        coin = coinValidator.Normalize(coin);
         logger.LogInformation("Monthly averages request for {Coin}", coin);
-        var data = await fetcher.GetMonthlyAveragesAsync(coin);
-        return Results.Json(data);
+        var pricesByYear = await fetcher.GetMonthlyAveragesAsync(coin);
+        return Results.Json(pricesByYear);
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Failed to get monthly averages");
-        return Results.Problem(detail: ex.Message);
+        logger.LogError(ex, "Failed to get monthly averages for {Coin}", coin);
+        return Results.Problem(detail: "Failed to fetch monthly averages. Please try again later.");
     }
 });
 

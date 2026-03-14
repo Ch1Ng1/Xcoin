@@ -1,205 +1,102 @@
-using System.Globalization;
-using System.Text.Json;
-using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 
 namespace XCoinMonthChart.Services;
 
+/// <summary>
+/// Orchestrates fetching monthly average cryptocurrency prices across multiple years.
+/// Delegates to <see cref="MockPriceProvider"/> for historical data and
+/// <see cref="CoinGeckoClient"/> (with <see cref="FileCacheService"/>) for the current year.
+/// </summary>
 public class DataFetcher
 {
-    private readonly IHttpClientFactory _httpFactory;
-    private readonly string _cacheDir;
+    private readonly CoinValidator _coinValidator;
+    private readonly MockPriceProvider _mockProvider;
+    private readonly CoinGeckoClient _apiClient;
+    private readonly FileCacheService _cache;
+    private readonly ILogger<DataFetcher> _logger;
 
-    public DataFetcher(IHttpClientFactory httpFactory)
+    private const int YearsOfHistory = 4;
+
+    public DataFetcher(
+        CoinValidator coinValidator,
+        MockPriceProvider mockProvider,
+        CoinGeckoClient apiClient,
+        FileCacheService cache,
+        ILogger<DataFetcher> logger)
     {
-        _httpFactory = httpFactory;
-        _cacheDir = Path.Combine(AppContext.BaseDirectory, "cache");
-        Directory.CreateDirectory(_cacheDir);
+        _coinValidator = coinValidator;
+        _mockProvider = mockProvider;
+        _apiClient = apiClient;
+        _cache = cache;
+        _logger = logger;
     }
 
+    /// <summary>
+    /// Returns monthly average prices for the last 5 years (current year included).
+    /// Historical years use mock data; the current year queries CoinGecko with disk caching.
+    /// </summary>
+    /// <param name="coin">Coin name (e.g. "bitcoin"). Normalized automatically.</param>
+    /// <returns>
+    /// Outer key = year, inner key = month (1–12), value = average USD price.
+    /// Returns an empty dictionary if no data is available at all.
+    /// </returns>
     public async Task<Dictionary<int, Dictionary<int, double>>> GetMonthlyAveragesAsync(string coin = "bitcoin")
     {
-        var results = new Dictionary<int, Dictionary<int, double>>();
+        coin = _coinValidator.Normalize(coin);
+        var pricesByYear = new Dictionary<int, Dictionary<int, double>>();
         int currentYear = DateTime.UtcNow.Year;
 
-        for (int year = currentYear - 4; year <= currentYear; year++)
+        for (int year = currentYear - YearsOfHistory; year <= currentYear; year++)
         {
-            Dictionary<int, double>? monthlyData;
-            if (year == currentYear)
+            try
             {
-                // Use real API data for current year
-                monthlyData = await GetYearlyMonthlyAveragesAsync(coin, year);
-            }
-            else
-            {
-                // Use mock data for past years
-                monthlyData = GetMockMonthlyAverages(coin, year);
-            }
+                var monthlyAverages = (year == currentYear)
+                    ? await FetchLiveYearAsync(coin, year)
+                    : _mockProvider.GetMonthlyAverages(coin, year);
 
-            if (monthlyData != null && monthlyData.Count > 0)
+                if (monthlyAverages is { Count: > 0 })
+                {
+                    pricesByYear[year] = monthlyAverages;
+                    _logger.LogDebug("Loaded {Months} months for {Coin} {Year}", monthlyAverages.Count, coin, year);
+                }
+                else
+                {
+                    _logger.LogWarning("No data for {Coin} {Year}", coin, year);
+                }
+            }
+            catch (Exception ex)
             {
-                results[year] = monthlyData;
+                _logger.LogError(ex, "Error fetching data for {Coin} {Year}, skipping", coin, year);
             }
         }
 
-        return results;
+        if (pricesByYear.Count == 0)
+            _logger.LogWarning("No data found for {Coin} across all years", coin);
+
+        return pricesByYear;
     }
 
-    private Dictionary<int, double>? GetMockMonthlyAverages(string coin, int year)
+    /// <summary>
+    /// Fetches live data for the current year: tries cache first, then CoinGecko API.
+    /// </summary>
+    private async Task<Dictionary<int, double>?> FetchLiveYearAsync(string coin, int year)
     {
-        var basePrices = new Dictionary<string, Dictionary<int, double[]>>()
-        {
-            ["bitcoin"] = new Dictionary<int, double[]>
-            {
-                {2021, new double[] {33000, 45000, 58000, 63000, 37000, 35000, 33000, 47000, 43000, 61000, 65000, 47000}},
-                {2022, new double[] {47000, 44000, 47000, 46000, 38000, 30000, 20000, 24000, 20000, 19000, 17000, 17000}},
-                {2023, new double[] {17000, 23000, 28000, 30000, 27000, 30000, 31000, 29000, 26000, 34000, 37000, 42000}},
-                {2024, new double[] {42000, 52000, 73000, 64000, 61000, 64000, 58000, 59000, 55000, 63000, 96000, 126000}},
-                {2025, new double[] {108000, 95000, 80000, 90000, 95000, 100000, 95000, 85000, 75000, 80000, 85000, 95000}},
-                {2026, new double[] {95000, 100000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}} // Partial for current year
-            },
-            ["ethereum"] = new Dictionary<int, double[]>
-            {
-                {2021, new double[] {2000, 3000, 3500, 4000, 2500, 2200, 1800, 3200, 2900, 4300, 4700, 3700}},
-                {2022, new double[] {3700, 3400, 3500, 3300, 2800, 1800, 1000, 1600, 1300, 1200, 1100, 1200}},
-                {2023, new double[] {1200, 1600, 1800, 1900, 1700, 1800, 1900, 1700, 1600, 2000, 2200, 2500}},
-                {2024, new double[] {2500, 3200, 3800, 3500, 3300, 3500, 3200, 3300, 3000, 3500, 4000, 4200}},
-                {2025, new double[] {4200, 3800, 3500, 4000, 4200, 4500, 4200, 3800, 3300, 3500, 3800, 4200}},
-                {2026, new double[] {4200, 4500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}} // Partial for current year
-            },
-            ["solana"] = new Dictionary<int, double[]>
-            {
-                {2021, new double[] {20, 50, 100, 150, 200, 180, 140, 160, 130, 200, 250, 170}},
-                {2022, new double[] {170, 150, 100, 120, 90, 30, 20, 40, 30, 25, 20, 15}},
-                {2023, new double[] {15, 20, 25, 30, 20, 25, 30, 25, 20, 30, 40, 50}},
-                {2024, new double[] {50, 80, 120, 150, 140, 160, 130, 140, 120, 150, 180, 200}},
-                {2025, new double[] {200, 180, 150, 170, 190, 200, 180, 160, 140, 150, 170, 190}},
-                {2026, new double[] {190, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}} // Partial for current year
-            },
-            ["xrp"] = new Dictionary<int, double[]>
-            {
-                {2021, new double[] {0.5, 0.8, 1.0, 1.2, 0.9, 0.7, 0.6, 1.0, 0.9, 1.3, 1.4, 1.0}},
-                {2022, new double[] {1.0, 0.9, 0.8, 0.7, 0.6, 0.4, 0.3, 0.5, 0.4, 0.3, 0.3, 0.3}},
-                {2023, new double[] {0.3, 0.4, 0.5, 0.5, 0.4, 0.5, 0.5, 0.4, 0.4, 0.6, 0.7, 0.8}},
-                {2024, new double[] {0.8, 0.9, 1.0, 0.9, 0.8, 0.9, 0.8, 0.8, 0.7, 0.9, 1.0, 1.1}},
-                {2025, new double[] {1.1, 1.0, 0.9, 1.0, 1.1, 1.2, 1.1, 1.0, 0.9, 1.0, 1.1, 1.2}},
-                {2026, new double[] {1.2, 1.3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}} // Partial for current year
-            },
-            ["cardano"] = new Dictionary<int, double[]>
-            {
-                {2021, new double[] {1.0, 1.5, 2.0, 2.5, 1.8, 1.5, 1.2, 2.0, 1.8, 2.5, 2.8, 2.0}},
-                {2022, new double[] {2.0, 1.8, 1.5, 1.3, 1.0, 0.5, 0.3, 0.6, 0.5, 0.4, 0.3, 0.3}},
-                {2023, new double[] {0.3, 0.4, 0.5, 0.5, 0.4, 0.5, 0.5, 0.4, 0.4, 0.6, 0.7, 0.8}},
-                {2024, new double[] {0.8, 1.0, 1.2, 1.1, 1.0, 1.1, 1.0, 1.0, 0.9, 1.1, 1.3, 1.4}},
-                {2025, new double[] {1.4, 1.3, 1.1, 1.2, 1.4, 1.5, 1.4, 1.3, 1.1, 1.2, 1.3, 1.4}},
-                {2026, new double[] {1.4, 1.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}} // Partial for current year
-            }
-        };
+        var coinGeckoId = _coinValidator.ToCoinGeckoId(coin);
+        var cacheKey = $"{coinGeckoId}-{year}";
 
-        if (!basePrices.ContainsKey(coin) || !basePrices[coin].ContainsKey(year))
+        var cachedJson = await _cache.TryReadAsync(cacheKey);
+        if (!string.IsNullOrWhiteSpace(cachedJson))
+        {
+            var cachedResult = _apiClient.ParseMonthlyAverages(cachedJson, year);
+            if (cachedResult is { Count: > 0 })
+                return cachedResult;
+        }
+
+        var freshJson = await _apiClient.FetchMarketChartJsonAsync(coinGeckoId, year);
+        if (string.IsNullOrWhiteSpace(freshJson))
             return null;
 
-        var monthly = new Dictionary<int, double>();
-        for (int month = 1; month <= 12; month++)
-        {
-            double price = basePrices[coin][year][month - 1];
-            if (price > 0)
-                monthly[month] = price;
-        }
-        return monthly.Count > 0 ? monthly : null;
-    }
-
-    private async Task<Dictionary<int, double>?> GetYearlyMonthlyAveragesAsync(string coin, int year)
-    {
-        var coinId = coin switch
-        {
-            "bitcoin" => "bitcoin",
-            "ethereum" => "ethereum",
-            "solana" => "solana",
-            "xrp" => "ripple",
-            "cardano" => "cardano",
-            _ => "bitcoin"
-        };
-
-        var from = new DateTimeOffset(new DateTime(year, 1, 1)).ToUnixTimeSeconds();
-        var to = new DateTimeOffset(new DateTime(year, 12, 31, 23, 59, 59)).ToUnixTimeSeconds();
-        var cache = Path.Combine(_cacheDir, $"{coinId}-{year}.json");
-        string? json = null;
-
-        bool cacheExists = File.Exists(cache);
-        DateTime? cacheWriteUtc = cacheExists ? (DateTime?)File.GetLastWriteTimeUtc(cache) : null;
-        bool cacheFresh = cacheWriteUtc.HasValue && (DateTime.UtcNow - cacheWriteUtc.Value) <= TimeSpan.FromHours(24);
-
-        if (cacheExists && cacheFresh)
-        {
-            try { json = await File.ReadAllTextAsync(cache); }
-            catch { }
-        }
-
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            var client = _httpFactory.CreateClient();
-            if (!client.DefaultRequestHeaders.UserAgent.Any())
-            {
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("XCoinMonthChart/1.0 (+https://example)");
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-            }
-
-            var url = $"https://api.coingecko.com/api/v3/coins/{coinId}/market_chart/range?vs_currency=usd&from={from}&to={to}";
-            int maxAttempts = 3;
-            for (int attempt = 1; attempt <= maxAttempts; attempt++)
-            {
-                await Task.Delay(2000 * attempt);
-                try
-                {
-                    var resp = await client.GetAsync(url);
-                    if (resp.IsSuccessStatusCode)
-                    {
-                        json = await resp.Content.ReadAsStringAsync();
-                        try { await File.WriteAllTextAsync(cache, json); } catch { }
-                        break;
-                    }
-                }
-                catch { }
-            }
-        }
-
-        if (string.IsNullOrWhiteSpace(json))
-            return null;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("prices", out var pricesElem) && pricesElem.ValueKind == JsonValueKind.Array)
-            {
-                var monthlyPrices = new Dictionary<int, List<double>>();
-                foreach (var item in pricesElem.EnumerateArray())
-                {
-                    if (item.ValueKind == JsonValueKind.Array && item.GetArrayLength() >= 2)
-                    {
-                        var timestamp = item[0].GetInt64();
-                        var price = item[1].GetDecimal();
-                        var dt = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).UtcDateTime;
-                        if (dt.Year == year)
-                        {
-                            int month = dt.Month;
-                            if (!monthlyPrices.ContainsKey(month))
-                                monthlyPrices[month] = new List<double>();
-                            monthlyPrices[month].Add((double)price);
-                        }
-                    }
-                }
-
-                var averages = new Dictionary<int, double>();
-                foreach (var kv in monthlyPrices)
-                {
-                    if (kv.Value.Count > 0)
-                        averages[kv.Key] = kv.Value.Average();
-                }
-                return averages;
-            }
-        }
-        catch { }
-
-        return null;
+        await _cache.WriteAsync(cacheKey, freshJson);
+        return _apiClient.ParseMonthlyAverages(freshJson, year);
     }
 }
