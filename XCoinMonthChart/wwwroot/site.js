@@ -275,6 +275,32 @@ function renderChartFromJson(data) {
 
   // Store original data for theme switching
   chartInstance.data.originalData = data;
+
+  // Render the data table
+  renderTableFromJson(data);
+}
+
+function renderTableFromJson(data) {
+  // data is { "2021": { "1": avg, "2": avg, ... }, "2022": {...}, ... }
+  const years = Object.keys(data).filter(y => /^\d{4}$/.test(y)).sort();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  // Update table headers
+  const yearHeaders = document.getElementById('yearHeaders');
+  yearHeaders.innerHTML = years.map(year => `<th>${year}</th>`).join('');
+
+  // Update table body
+  const tableBody = document.getElementById('dataTableBody');
+  tableBody.innerHTML = '';
+
+  for (let m = 1; m <= 12; m++) {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${monthNames[m-1]}</td>` + years.map(year => {
+      const value = data[year][m];
+      return `<td>${value !== null && value !== undefined ? '$' + value.toLocaleString() : '-'}</td>`;
+    }).join('');
+    tableBody.appendChild(row);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

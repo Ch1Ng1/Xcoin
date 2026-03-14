@@ -22,13 +22,13 @@ public class MonthlyStatsData
     public Dictionary<int, MonthlyStats> Years { get; set; } = new();
 }
 
-/// <summary>
-/// Contains daily prices for a year
-/// </summary>
-public class DailyPricesData
-{
-    public Dictionary<int, List<double>> Years { get; set; } = new();
-}
+///// <summary>
+///// Contains daily prices for a year
+///// </summary>
+//public class DailyPricesData
+//{
+//    public Dictionary<int, List<double>> Years { get; set; } = new();
+//}
 
 /// <summary>
 /// Processed monthly data for charts
