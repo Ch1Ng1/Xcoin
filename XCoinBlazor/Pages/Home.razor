@@ -14,6 +14,24 @@
         </div>
     </div>
 
+    <!-- Cryptocurrency Selection -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <label for="cryptoSelect" class="form-label">Select Cryptocurrency:</label>
+                    <select id="cryptoSelect" class="form-select" @bind="selectedCrypto">
+                        @foreach (var crypto in availableCryptos)
+                        {
+                            <option value="@crypto.Name">@crypto.DisplayName (@crypto.Symbol)</option>
+                        }
+                    </select>
+                    <button class="btn btn-primary mt-2" @onclick="LoadSelectedCrypto">Load Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @if (isLoading)
     {
         <div class="row">
@@ -149,13 +167,21 @@
     private string? errorMessage;
     private Dictionary<int, Dictionary<int, double>> monthlyData = new();
     private (int totalYears, double average, double highest, double lowest) stats;
+    private string selectedCrypto = "bitcoin";
+    private List<CryptoCurrency> availableCryptos = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            availableCryptos = CryptoDataService.GetAvailableCryptocurrencies();
             await LoadData();
         }
+    }
+
+    private async Task LoadSelectedCrypto()
+    {
+        await LoadData();
     }
 
     private async Task LoadData()
@@ -165,7 +191,7 @@
             isLoading = true;
             StateHasChanged();
 
-            var dailyPrices = await CryptoDataService.LoadDailyPricesAsync();
+            var dailyPrices = await CryptoDataService.LoadDailyPricesAsync(selectedCrypto);
             monthlyData = CryptoDataService.ProcessMonthlyAverages(dailyPrices);
 
             if (monthlyData.Any())

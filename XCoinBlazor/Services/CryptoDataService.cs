@@ -86,7 +86,7 @@ public class CryptoDataService
     /// <summary>
     /// Loads daily prices from hardcoded data
     /// </summary>
-    public async Task<DailyPricesData> LoadDailyPricesAsync()
+    public async Task<DailyPricesData> LoadDailyPricesAsync(string cryptoName = "bitcoin")
     {
         // Simulate async operation
         await Task.Delay(100);
@@ -155,27 +155,29 @@ public class CryptoDataService
             var year = yearEntry.Key;
             var dailyPrices = yearEntry.Value;
 
-            // For now, assume the daily prices represent monthly prices
-            // We'll distribute them across 12 months or use them as-is
             var monthlyPrices = new Dictionary<int, double>();
 
-            // If we have exactly 12 prices, use them as monthly prices
-            if (dailyPrices.Count == 12)
+            if (dailyPrices.Count == 0)
+                continue;
+
+            // Distribute daily prices evenly across 12 months
+            int daysPerMonth = dailyPrices.Count / 12;
+            int remainingDays = dailyPrices.Count % 12;
+
+            int dayIndex = 0;
+            for (int month = 1; month <= 12; month++)
             {
-                for (int month = 1; month <= 12; month++)
+                int daysInThisMonth = daysPerMonth + (month <= remainingDays ? 1 : 0);
+                if (daysInThisMonth == 0)
+                    continue;
+
+                double sum = 0;
+                for (int i = 0; i < daysInThisMonth && dayIndex < dailyPrices.Count; i++)
                 {
-                    monthlyPrices[month] = dailyPrices[month - 1];
+                    sum += dailyPrices[dayIndex++];
                 }
-            }
-            else
-            {
-                // If we have a different number of prices, distribute them evenly across months
-                // or use the first 12 prices as monthly prices
-                int monthsToFill = Math.Min(12, dailyPrices.Count);
-                for (int month = 1; month <= monthsToFill; month++)
-                {
-                    monthlyPrices[month] = dailyPrices[month - 1];
-                }
+
+                monthlyPrices[month] = sum / daysInThisMonth;
             }
 
             if (monthlyPrices.Any())
