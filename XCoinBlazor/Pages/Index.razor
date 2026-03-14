@@ -67,7 +67,7 @@ else
     {
         if (firstRender && chartConfig != null)
         {
-            await JS.InvokeVoidAsync("initializeChart", chartConfig);
+            await JS.InvokeVoidAsync("renderChart", "priceChart", chartConfig);
         }
     }
 }
