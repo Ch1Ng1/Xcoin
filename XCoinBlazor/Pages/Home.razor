@@ -166,17 +166,12 @@
             StateHasChanged();
 
             var dailyPrices = await CryptoDataService.LoadDailyPricesAsync();
-            Console.WriteLine($"Loaded {dailyPrices.Years.Count} years of daily prices");
-
             monthlyData = CryptoDataService.ProcessMonthlyAverages(dailyPrices);
-            Console.WriteLine($"Processed into {monthlyData.Count} years of monthly data");
 
             if (monthlyData.Any())
             {
                 var calculatedStats = CryptoDataService.CalculateStats(monthlyData);
                 stats = (monthlyData.Count, calculatedStats.avg, calculatedStats.max, calculatedStats.min);
-
-                Console.WriteLine($"Stats calculated: Years={stats.totalYears}, Avg=${stats.average:N2}, Max=${stats.highest:N2}, Min=${stats.lowest:N2}");
 
                 // Initialize chart after data is loaded
                 await Task.Delay(100); // Small delay to ensure DOM is ready
@@ -185,14 +180,11 @@
             else
             {
                 errorMessage = "No data available";
-                Console.WriteLine("No monthly data processed");
             }
         }
         catch (Exception ex)
         {
             errorMessage = $"Failed to load data: {ex.Message}";
-            Console.WriteLine($"Error in LoadData: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
         }
         finally
         {
