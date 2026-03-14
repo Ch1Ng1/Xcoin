@@ -222,7 +222,120 @@
     {
         try
         {
-            await JSRuntime.InvokeVoidAsync("initializeChart", monthlyData);
+            // Prepare data for Chart.js
+            var years = monthlyData.Keys.OrderBy(y => y).ToList();
+            var monthNames = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+            var datasets = new List<object>();
+
+            // Color palette
+            var colors = new[]
+            {
+                "rgba(255, 99, 132, 1)",
+                "rgba(54, 162, 235, 1)",
+                "rgba(255, 205, 86, 1)",
+                "rgba(75, 192, 192, 1)",
+                "rgba(153, 102, 255, 1)",
+                "rgba(255, 159, 64, 1)",
+                "rgba(199, 199, 199, 1)",
+                "rgba(83, 102, 255, 1)",
+                "rgba(255, 99, 255, 1)",
+                "rgba(99, 255, 132, 1)"
+            };
+
+            for (int i = 0; i < years.Count; i++)
+            {
+                var year = years[i];
+                var yearData = monthlyData[year];
+                var prices = new List<double>();
+
+                for (int month = 1; month <= 12; month++)
+                {
+                    prices.Add(yearData.TryGetValue(month, out var price) ? price : 0);
+                }
+
+                datasets.Add(new
+                {
+                    label = year.ToString(),
+                    data = prices,
+                    borderColor = colors[i % colors.Length],
+                    backgroundColor = colors[i % colors.Length].Replace("1)", "0.1)"),
+                    borderWidth = 2,
+                    fill = false,
+                    tension = 0.1,
+                    pointRadius = 3,
+                    pointHoverRadius = 5
+                });
+            }
+
+            var chartConfig = new
+            {
+                type = "line",
+                data = new
+                {
+                    labels = monthNames,
+                    datasets = datasets
+                },
+                options = new
+                {
+                    responsive = true,
+                    maintainAspectRatio = false,
+                    plugins = new
+                    {
+                        title = new
+                        {
+                            display = true,
+                            text = "Cryptocurrency Monthly Average Prices",
+                            font = new { size = 16 }
+                        },
+                        legend = new
+                        {
+                            display = true,
+                            position = "top"
+                        },
+                        tooltip = new
+                        {
+                            mode = "index",
+                            intersect = false,
+                            callbacks = new
+                            {
+                                label = "function(context) { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.y !== null) { label += '$' + context.parsed.y.toLocaleString(); } return label; }"
+                            }
+                        }
+                    },
+                    scales = new
+                    {
+                        y = new
+                        {
+                            beginAtZero = false,
+                            ticks = new
+                            {
+                                callback = "function(value) { return '$' + value.toLocaleString(); }"
+                            },
+                            title = new
+                            {
+                                display = true,
+                                text = "Price (USD)"
+                            }
+                        },
+                        x = new
+                        {
+                            title = new
+                            {
+                                display = true,
+                                text = "Month"
+                            }
+                        }
+                    },
+                    interaction = new
+                    {
+                        mode = "nearest",
+                        axis = "x",
+                        intersect = false
+                    }
+                }
+            };
+
+            await JSRuntime.InvokeVoidAsync("renderChart", "priceChart", chartConfig);
         }
         catch (Exception ex)
         {
