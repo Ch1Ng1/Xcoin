@@ -20,13 +20,13 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore ./XCoinBlazor/XCoinBlazor.csproj
 
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build ./XCoinBlazor/XCoinBlazor.csproj --configuration Release --no-restore
 
     - name: Publish
-      run: dotnet publish --configuration Release --output build --no-build
+      run: dotnet publish ./XCoinBlazor/XCoinBlazor.csproj --configuration Release --output build --no-build
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
