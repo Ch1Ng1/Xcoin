@@ -1,0 +1,207 @@
+﻿@page "/"
+@using XCoinBlazor.Services
+@using XCoinBlazor.Models
+@inject CryptoDataService CryptoDataService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Cryptocurrency Price Tracker</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-4">Cryptocurrency Monthly Prices</h1>
+            <p class="lead">Track monthly average prices for the last 5 years</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="row">
+            <div class="col text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading cryptocurrency data...</p>
+            </div>
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="row">
+            <div class="col">
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> @errorMessage
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Years</h5>
+                        <h2>@stats.totalYears</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Average Price</h5>
+                        <h2>$@stats.average.ToString("N0")</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Highest Price</h5>
+                        <h2>$@stats.highest.ToString("N0")</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Lowest Price</h5>
+                        <h2>$@stats.lowest.ToString("N0")</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Monthly Price Chart</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="priceChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="row">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Monthly Price Data</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Year</th>
+                                        <th>Jan</th>
+                                        <th>Feb</th>
+                                        <th>Mar</th>
+                                        <th>Apr</th>
+                                        <th>May</th>
+                                        <th>Jun</th>
+                                        <th>Jul</th>
+                                        <th>Aug</th>
+                                        <th>Sep</th>
+                                        <th>Oct</th>
+                                        <th>Nov</th>
+                                        <th>Dec</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var yearData in monthlyData.OrderByDescending(x => x.Key))
+                                    {
+                                        <tr>
+                                            <td><strong>@yearData.Key</strong></td>
+                                            @for (int month = 1; month <= 12; month++)
+                                            {
+                                                <td>
+                                                    @if (yearData.Value.TryGetValue(month, out var price) && price > 0)
+                                                    {
+                                                        @($"${price:N0}")
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private string? errorMessage;
+    private Dictionary<int, Dictionary<int, double>> monthlyData = new();
+    private (int totalYears, double average, double highest, double lowest) stats;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var dailyPrices = await CryptoDataService.LoadDailyPricesAsync();
+            monthlyData = CryptoDataService.ProcessMonthlyAverages(dailyPrices);
+
+            if (monthlyData.Any())
+            {
+                var calculatedStats = CryptoDataService.CalculateStats(monthlyData);
+                stats = (monthlyData.Count, calculatedStats.avg, calculatedStats.max, calculatedStats.min);
+
+                // Initialize chart after data is loaded
+                await Task.Delay(100); // Small delay to ensure DOM is ready
+                await InitializeChart();
+            }
+            else
+            {
+                errorMessage = "No data available";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task InitializeChart()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("initializeChart", monthlyData);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Chart initialization error: {ex.Message}");
+        }
+    }
+}
