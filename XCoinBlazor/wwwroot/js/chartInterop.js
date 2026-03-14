@@ -2,11 +2,15 @@
 let priceChart = null;
 
 window.initializeChart = (monthlyData) => {
+    console.log('initializeChart called with data:', monthlyData);
+
     const ctx = document.getElementById('priceChart');
     if (!ctx) {
         console.error('Chart canvas not found');
         return;
     }
+
+    console.log('Chart canvas found, initializing chart...');
 
     // Destroy existing chart if it exists
     if (priceChart) {
