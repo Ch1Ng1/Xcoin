@@ -50,10 +50,16 @@ async function loadChart() {
   const fallbackImg = document.getElementById('chartFallback');
   const status = document.getElementById('status');
   const coinSelect = document.getElementById('coinSelect');
+
+  if (!canvas) {
+    console.error('Chart canvas not found');
+    return;
+  }
+
   const coin = coinSelect ? coinSelect.value : 'bitcoin';
 
   if (status) status.textContent = 'Loading chart data...';
-  fallbackImg.style.display = 'none';
+  if (fallbackImg) fallbackImg.style.display = 'none';
 
   try {
     // Use embedded data instead of API call
@@ -68,8 +74,8 @@ async function loadChart() {
   catch (err) {
     console.error('Error loading chart data', err);
     if (status) status.textContent = `Failed to load data for ${coin}.`;
-    fallbackImg.style.display = '';
-    canvas.style.display = 'none';
+    if (fallbackImg) fallbackImg.style.display = '';
+    if (canvas) canvas.style.display = 'none';
   }
 }
 
@@ -251,7 +257,7 @@ function renderChartFromJson(data) {
 
   const canvas = document.getElementById('chartCanvas');
   const fallbackImg = document.getElementById('chartFallback');
-  fallbackImg.style.display = 'none';
+  if (fallbackImg) fallbackImg.style.display = 'none';
   canvas.style.display = '';
 
   const ctx = canvas.getContext('2d');

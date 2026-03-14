@@ -4,6 +4,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Register services (each with a single responsibility)
 builder.Services.AddHttpClient();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 builder.Services.AddSingleton<CoinValidator>();
 builder.Services.AddSingleton<MockPriceProvider>();
 builder.Services.AddSingleton<FileCacheService>();
@@ -24,6 +33,7 @@ app.MapGet("/favicon.ico", () => Results.File(faviconBytes, "image/png"));
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.UseCors();
 
 app.MapGet("/health", () => Results.Json(new { status = "ok", now = DateTime.UtcNow }));
 

@@ -191,8 +191,7 @@
             isLoading = true;
             StateHasChanged();
 
-            var dailyPrices = await CryptoDataService.LoadDailyPricesAsync(selectedCrypto);
-            monthlyData = CryptoDataService.ProcessMonthlyAverages(dailyPrices);
+            monthlyData = await CryptoDataService.LoadMonthlyAveragesAsync(selectedCrypto);
 
             if (monthlyData.Any())
             {
