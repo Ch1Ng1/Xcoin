@@ -2,7 +2,6 @@
 let priceChart = null;
 
 window.initializeChart = (monthlyData) => {
-    console.log('Received monthly data:', monthlyData);
     const ctx = document.getElementById('priceChart');
     if (!ctx) {
         console.error('Chart canvas not found');
