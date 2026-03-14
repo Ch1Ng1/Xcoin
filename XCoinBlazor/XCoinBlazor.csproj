@@ -13,9 +13,4 @@
     <PackageReference Include="System.Net.Http.Json" Version="10.0.5" />
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="wwwroot\data\month-stats.json" />
-    <EmbeddedResource Include="wwwroot\data\resp.json" />
-  </ItemGroup>
-
 </Project>

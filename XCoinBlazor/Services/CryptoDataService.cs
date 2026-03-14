@@ -1,6 +1,4 @@
 using System.Net.Http.Json;
-using System.Reflection;
-using System.Text.Json;
 using XCoinBlazor.Models;
 
 namespace XCoinBlazor.Services;
@@ -18,30 +16,13 @@ public class CryptoDataService
     }
 
     /// <summary>
-    /// Loads monthly statistics from embedded month-stats.json
+    /// Loads monthly statistics from month-stats.json
     /// </summary>
     public async Task<MonthlyStatsData> LoadMonthlyStatsAsync()
     {
         try
         {
-            var assembly = Assembly.GetExecutingAssembly();
-            var allResources = assembly.GetManifestResourceNames();
-            Console.WriteLine($"Available resources: {string.Join(", ", allResources)}");
-
-            var resourceName = "XCoinBlazor.wwwroot.data.month-stats.json";
-            Console.WriteLine($"Looking for resource: {resourceName}");
-
-            using var stream = assembly.GetManifestResourceStream(resourceName);
-            if (stream == null)
-            {
-                Console.WriteLine("Embedded resource not found, trying HTTP fallback");
-                return await LoadMonthlyStatsFromHttpAsync();
-            }
-
-            using var reader = new StreamReader(stream);
-            var json = await reader.ReadToEndAsync();
-            Console.WriteLine($"Loaded JSON length: {json.Length}");
-            var data = JsonSerializer.Deserialize<Dictionary<int, MonthlyStats>>(json);
+            var data = await _httpClient.GetFromJsonAsync<Dictionary<int, MonthlyStats>>("data/month-stats.json");
             return new MonthlyStatsData { Years = data ?? new Dictionary<int, MonthlyStats>() };
         }
         catch (Exception ex)
@@ -51,55 +32,10 @@ public class CryptoDataService
         }
     }
 
-    private async Task<MonthlyStatsData> LoadMonthlyStatsFromHttpAsync()
-    {
-        try
-        {
-            var data = await _httpClient.GetFromJsonAsync<Dictionary<int, MonthlyStats>>("data/month-stats.json");
-            return new MonthlyStatsData { Years = data ?? new Dictionary<int, MonthlyStats>() };
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"HTTP fallback failed: {ex.Message}");
-            return new MonthlyStatsData();
-        }
-    }
-
     /// <summary>
-    /// Loads daily prices from embedded resp.json
+    /// Loads daily prices from resp.json
     /// </summary>
     public async Task<DailyPricesData> LoadDailyPricesAsync()
-    {
-        try
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-            var allResources = assembly.GetManifestResourceNames();
-            Console.WriteLine($"Available resources: {string.Join(", ", allResources)}");
-
-            var resourceName = "XCoinBlazor.wwwroot.data.resp.json";
-            Console.WriteLine($"Looking for resource: {resourceName}");
-
-            using var stream = assembly.GetManifestResourceStream(resourceName);
-            if (stream == null)
-            {
-                Console.WriteLine("Embedded resource not found, trying HTTP fallback");
-                return await LoadDailyPricesFromHttpAsync();
-            }
-
-            using var reader = new StreamReader(stream);
-            var json = await reader.ReadToEndAsync();
-            Console.WriteLine($"Loaded JSON length: {json.Length}");
-            var data = JsonSerializer.Deserialize<Dictionary<int, List<double>>>(json);
-            return new DailyPricesData { Years = data ?? new Dictionary<int, List<double>>() };
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading daily prices: {ex.Message}");
-            return new DailyPricesData();
-        }
-    }
-
-    private async Task<DailyPricesData> LoadDailyPricesFromHttpAsync()
     {
         try
         {
@@ -108,7 +44,7 @@ public class CryptoDataService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"HTTP fallback failed: {ex.Message}");
+            Console.WriteLine($"Error loading daily prices: {ex.Message}");
             return new DailyPricesData();
         }
     }
