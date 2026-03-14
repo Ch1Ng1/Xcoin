@@ -48,3 +48,12 @@ public class CryptoCurrency
     public string DisplayName { get; set; } = string.Empty;
     public string Symbol { get; set; } = string.Empty;
 }
+
+/// <summary>
+/// Represents a monthly Bitcoin price statistic
+/// </summary>
+public class MonthStat
+{
+    public string? Month { get; set; }
+    public decimal Price { get; set; }
+}

@@ -9,9 +9,13 @@ window.renderChart = (canvasId, chartData) => {
         return;
     }
 
-    const ctx = canvas.getContext('2d');
+    // Destroy existing chart to avoid duplicates
+    if (priceChart) {
+        priceChart.destroy();
+    }
 
-    new Chart(ctx, {
+    const ctx = canvas.getContext('2d');
+    priceChart = new Chart(ctx, {
         type: chartData.type,
         data: chartData.data,
         options: chartData.options
