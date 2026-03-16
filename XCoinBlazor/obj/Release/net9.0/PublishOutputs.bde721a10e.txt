@@ -1,0 +1,1 @@
+c:\xampp\htdocs\Xcoin\publish_blazor\web.config

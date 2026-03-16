@@ -1,0 +1,86 @@
+﻿@page "/"
+@using XCoinBlazor.Models
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<h3>Bitcoin Monthly Chart</h3>
+
+@if (isLoading)
+{
+    <p>Loading chart data...</p>
+}
+else if (hasError)
+{
+    <p>Error loading chart data. Please try again.</p>
+}
+else
+{
+    <canvas id="priceChart" width="1000" height="450"></canvas>
+}
+
+@code {
+    private object? chartConfig;
+    private bool isLoading = true;
+    private bool hasError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var yearlyValues = await Http.GetFromJsonAsync<Dictionary<string, List<decimal>>>("data/month-stats.json");
+
+            if (yearlyValues is null || yearlyValues.Count == 0)
+            {
+                hasError = true;
+                return;
+            }
+
+            var allowedYears = new[] { "2022", "2023", "2024", "2025", "2026" };
+            var monthlyData = new Dictionary<string, Dictionary<int, double>>();
+
+            foreach (var year in allowedYears)
+            {
+                if (!yearlyValues.TryGetValue(year, out var values))
+                {
+                    continue;
+                }
+
+                if (values.Count < 12)
+                {
+                    hasError = true;
+                    return;
+                }
+
+                monthlyData[year] = values
+                    .Take(12)
+                    .Select((value, index) => new { Month = index + 1, Price = (double)value })
+                    .ToDictionary(item => item.Month, item => item.Price);
+            }
+
+            if (monthlyData.Count == 0)
+            {
+                hasError = true;
+                return;
+            }
+
+            chartConfig = monthlyData;
+        }
+        catch
+        {
+            hasError = true;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && chartConfig is not null)
+        {
+            await JS.InvokeVoidAsync("renderChart", "priceChart", chartConfig);
+        }
+    }
+}

@@ -1,0 +1,11 @@
+C:\xampp\htdocs\Xcoin\publish\XCoinMonthChart.exe
+C:\xampp\htdocs\Xcoin\publish\XCoinMonthChart.dll
+C:\xampp\htdocs\Xcoin\publish\XCoinMonthChart.deps.json
+C:\xampp\htdocs\Xcoin\publish\XCoinMonthChart.runtimeconfig.json
+C:\xampp\htdocs\Xcoin\publish\XCoinMonthChart.pdb
+C:\xampp\htdocs\Xcoin\publish\Microsoft.Win32.SystemEvents.dll
+C:\xampp\htdocs\Xcoin\publish\ScottPlot.dll
+C:\xampp\htdocs\Xcoin\publish\System.Drawing.Common.dll
+C:\xampp\htdocs\Xcoin\publish\runtimes\win\lib\netcoreapp3.0\Microsoft.Win32.SystemEvents.dll
+C:\xampp\htdocs\Xcoin\publish\runtimes\unix\lib\netcoreapp3.0\System.Drawing.Common.dll
+C:\xampp\htdocs\Xcoin\publish\runtimes\win\lib\netcoreapp3.0\System.Drawing.Common.dll

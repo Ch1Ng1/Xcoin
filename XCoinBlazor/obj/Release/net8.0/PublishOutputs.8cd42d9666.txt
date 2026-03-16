@@ -1,0 +1,2 @@
+C:\xampp\htdocs\Xcoin\docs_temp\emcc-props.json
+C:\xampp\htdocs\Xcoin\docs_temp\web.config
