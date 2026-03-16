@@ -1,9 +1,19 @@
 ﻿@page "/"
-@using XCoinBlazor.Models
 @inject HttpClient Http
 @inject IJSRuntime JS
+@using System.Text.Json
 
-<h3>Bitcoin Monthly Chart</h3>
+<h3>@selectedCoin Monthly Chart</h3>
+
+<div class="mb-3">
+    <label for="coinSelect" class="form-label me-2">Currency</label>
+    <select id="coinSelect" class="form-select d-inline-block w-auto" @bind="selectedCoin" @bind:after="OnSelectedCoinChangedAsync">
+        @foreach (var coin in coinDataFiles.Keys)
+        {
+            <option value="@coin">@coin</option>
+        }
+    </select>
+</div>
 
 @if (isLoading)
 {
@@ -15,19 +25,65 @@ else if (hasError)
 }
 else
 {
-    <canvas id="priceChart" width="1000" height="450"></canvas>
+    <div class="chart-wrapper">
+        <canvas id="priceChart"></canvas>
+    </div>
 }
 
 @code {
     private object? chartConfig;
     private bool isLoading = true;
     private bool hasError;
+    private bool shouldRenderChart;
+    private string selectedCoin = "BTC";
+    private readonly Dictionary<string, string> coinDataFiles = new()
+    {
+        ["BTC"] = "data/month-stats.json",
+        ["ETH"] = "data/eth-month-stats.json",
+        ["SOLANA"] = "data/solana-month-stats.json",
+        ["XRP"] = "data/xrp-month-stats.json"
+    };
+    private readonly Dictionary<string, string> coinApiIds = new()
+    {
+        ["BTC"] = "bitcoin",
+        ["ETH"] = "ethereum",
+        ["SOLANA"] = "solana",
+        ["XRP"] = "ripple"
+    };
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadChartDataAsync(selectedCoin);
+    }
+
+    private async Task OnSelectedCoinChangedAsync()
+    {
+        await SelectCoinAsync(selectedCoin);
+    }
+
+    private async Task SelectCoinAsync(string coin)
+    {
+        selectedCoin = coin;
+        await LoadChartDataAsync(coin);
+    }
+
+    private async Task LoadChartDataAsync(string coin)
+    {
+        isLoading = true;
+        hasError = false;
+        StateHasChanged();
+
         try
         {
-            var yearlyValues = await Http.GetFromJsonAsync<Dictionary<string, List<decimal>>>("data/month-stats.json");
+            if (!coinDataFiles.TryGetValue(coin, out var dataFile))
+            {
+                hasError = true;
+                return;
+            }
+
+            var yearlyValues = await Http.GetFromJsonAsync<Dictionary<string, List<decimal>>>(dataFile);
+            var currentYear = DateTime.UtcNow.Year;
+            var currentYearKey = currentYear.ToString();
 
             if (yearlyValues is null || yearlyValues.Count == 0)
             {
@@ -35,7 +91,18 @@ else
                 return;
             }
 
-            var allowedYears = new[] { "2022", "2023", "2024", "2025", "2026" };
+            if (coinApiIds.TryGetValue(coin, out var coinApiId))
+            {
+                var apiCurrentYearValues = await TryGetCurrentYearValuesAsync(coinApiId, currentYear);
+                if (apiCurrentYearValues is not null && apiCurrentYearValues.Count > 0)
+                {
+                    yearlyValues[currentYearKey] = apiCurrentYearValues;
+                }
+            }
+
+            var firstYear = 2022;
+            var lastYear = Math.Max(firstYear, currentYear);
+            var allowedYears = Enumerable.Range(firstYear, lastYear - firstYear + 1).Select(year => year.ToString());
             var monthlyData = new Dictionary<string, Dictionary<int, double>>();
 
             foreach (var year in allowedYears)
@@ -45,14 +112,22 @@ else
                     continue;
                 }
 
-                if (values.Count < 12)
+                if (values.Count == 0)
                 {
                     hasError = true;
                     return;
                 }
 
+                var maxMonths = year == currentYearKey ? DateTime.UtcNow.Month : 12;
+                var monthCount = Math.Min(maxMonths, values.Count);
+
+                if (monthCount == 0)
+                {
+                    continue;
+                }
+
                 monthlyData[year] = values
-                    .Take(12)
+                    .Take(monthCount)
                     .Select((value, index) => new { Month = index + 1, Price = (double)value })
                     .ToDictionary(item => item.Month, item => item.Price);
             }
@@ -64,6 +139,7 @@ else
             }
 
             chartConfig = monthlyData;
+            shouldRenderChart = true;
         }
         catch
         {
@@ -78,9 +154,82 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && chartConfig is not null)
+        if (shouldRenderChart && chartConfig is not null)
         {
             await JS.InvokeVoidAsync("renderChart", "priceChart", chartConfig);
+            shouldRenderChart = false;
+        }
+    }
+
+    private static async Task<List<decimal>?> TryGetCurrentYearValuesAsync(string coinApiId, int year)
+    {
+        try
+        {
+            var from = new DateTimeOffset(new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc)).ToUnixTimeSeconds();
+            var to = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var url = $"https://api.coingecko.com/api/v3/coins/{coinApiId}/market_chart/range?vs_currency=usd&from={from}&to={to}";
+
+            using var apiClient = new HttpClient();
+            using var response = await apiClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            using var responseStream = await response.Content.ReadAsStreamAsync();
+            using var json = await JsonDocument.ParseAsync(responseStream);
+
+            if (!json.RootElement.TryGetProperty("prices", out var pricesElement) || pricesElement.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            var monthlyValues = new Dictionary<int, List<decimal>>();
+
+            foreach (var point in pricesElement.EnumerateArray())
+            {
+                if (point.ValueKind != JsonValueKind.Array || point.GetArrayLength() < 2)
+                {
+                    continue;
+                }
+
+                var timestampMilliseconds = point[0].GetDouble();
+                var price = point[1].GetDouble();
+                var date = DateTimeOffset.FromUnixTimeMilliseconds((long)timestampMilliseconds).UtcDateTime;
+
+                if (date.Year != year)
+                {
+                    continue;
+                }
+
+                if (!monthlyValues.TryGetValue(date.Month, out var monthList))
+                {
+                    monthList = new List<decimal>();
+                    monthlyValues[date.Month] = monthList;
+                }
+
+                monthList.Add((decimal)price);
+            }
+
+            var currentMonth = DateTime.UtcNow.Month;
+            var result = new List<decimal>();
+
+            for (var month = 1; month <= currentMonth; month++)
+            {
+                if (!monthlyValues.TryGetValue(month, out var monthList) || monthList.Count == 0)
+                {
+                    break;
+                }
+
+                result.Add(monthList.Average());
+            }
+
+            return result.Count > 0 ? result : null;
+        }
+        catch
+        {
+            return null;
         }
     }
 }
