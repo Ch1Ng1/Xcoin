@@ -3,25 +3,73 @@
 @inject IJSRuntime JS
 @using System.Text.Json
 
-<h3>@selectedCoin Monthly Chart</h3>
+<div class="coin-header">
+    <h3 class="coin-title">
+        <span class="coin-icon">@coinIcons.GetValueOrDefault(selectedCoin, "💰")</span>
+        @coinFullNames.GetValueOrDefault(selectedCoin, selectedCoin) Monthly Chart
+    </h3>
+    <button class="btn btn-outline-secondary btn-sm refresh-btn" @onclick="RefreshAsync" disabled="@isLoading" title="Refresh">
+        <span class="@(isLoading ? "spin" : "")">⟳</span> Refresh
+    </button>
+</div>
 
-<div class="mb-3">
-    <label for="coinSelect" class="form-label me-2">Currency</label>
-    <select id="coinSelect" class="form-select d-inline-block w-auto" @bind="selectedCoin" @bind:after="OnSelectedCoinChangedAsync">
+<div class="coin-selector-row mb-3">
+    <label class="form-label me-2 fw-semibold">Select Coin:</label>
+    <div class="coin-buttons">
         @foreach (var coin in coinDataFiles.Keys)
         {
-            <option value="@coin">@coin</option>
+            <button class="btn coin-btn @(selectedCoin == coin ? "active" : "")"
+                    @onclick="() => SelectCoinAsync(coin)">
+                <span>@coinIcons.GetValueOrDefault(coin, "💰")</span>
+                @coin
+            </button>
         }
-    </select>
+    </div>
 </div>
+
+@if (priceInfo is not null)
+{
+    <div class="price-info-row mb-3">
+        <div class="price-card">
+            <span class="price-label">Current Price</span>
+            <span class="price-value">@FormatPrice(priceInfo.CurrentPrice)</span>
+        </div>
+        <div class="price-card">
+            <span class="price-label">24h Change</span>
+            <span class="price-change @(priceInfo.Change24h >= 0 ? "positive" : "negative")">
+                @(priceInfo.Change24h >= 0 ? "▲" : "▼") @Math.Abs(priceInfo.Change24h).ToString("F2")%
+            </span>
+        </div>
+        <div class="price-card">
+            <span class="price-label">24h High</span>
+            <span class="price-value">@FormatPrice(priceInfo.High24h)</span>
+        </div>
+        <div class="price-card">
+            <span class="price-label">24h Low</span>
+            <span class="price-value">@FormatPrice(priceInfo.Low24h)</span>
+        </div>
+        @if (lastUpdated.HasValue)
+        {
+            <div class="price-card updated-card">
+                <span class="price-label">Last Updated</span>
+                <span class="price-updated">@lastUpdated.Value.ToLocalTime().ToString("HH:mm:ss")</span>
+            </div>
+        }
+    </div>
+}
 
 @if (isLoading)
 {
-    <p>Loading chart data...</p>
+    <div class="loading-spinner">
+        <div class="spinner"></div>
+        <span>Loading chart data...</span>
+    </div>
 }
 else if (hasError)
 {
-    <p>Error loading chart data. Please try again.</p>
+    <div class="alert alert-warning">
+        <span>⚠️</span> Error loading chart data. <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="RefreshAsync">Try again</button>
+    </div>
 }
 else
 {
@@ -36,19 +84,44 @@ else
     private bool hasError;
     private bool shouldRenderChart;
     private string selectedCoin = "BTC";
+    private PriceInfo? priceInfo;
+    private DateTime? lastUpdated;
+
     private readonly Dictionary<string, string> coinDataFiles = new()
     {
         ["BTC"] = "data/month-stats.json",
         ["ETH"] = "data/eth-month-stats.json",
         ["SOLANA"] = "data/solana-month-stats.json",
-        ["XRP"] = "data/xrp-month-stats.json"
+        ["XRP"] = "data/xrp-month-stats.json",
+        ["DOGE"] = "data/doge-month-stats.json",
+        ["SHIB"] = "data/shib-month-stats.json"
     };
     private readonly Dictionary<string, string> coinApiIds = new()
     {
         ["BTC"] = "bitcoin",
         ["ETH"] = "ethereum",
         ["SOLANA"] = "solana",
-        ["XRP"] = "ripple"
+        ["XRP"] = "ripple",
+        ["DOGE"] = "dogecoin",
+        ["SHIB"] = "shiba-inu"
+    };
+    private readonly Dictionary<string, string> coinFullNames = new()
+    {
+        ["BTC"] = "Bitcoin",
+        ["ETH"] = "Ethereum",
+        ["SOLANA"] = "Solana",
+        ["XRP"] = "XRP",
+        ["DOGE"] = "Dogecoin",
+        ["SHIB"] = "Shiba Inu"
+    };
+    private readonly Dictionary<string, string> coinIcons = new()
+    {
+        ["BTC"] = "₿",
+        ["ETH"] = "Ξ",
+        ["SOLANA"] = "◎",
+        ["XRP"] = "✕",
+        ["DOGE"] = "Ð",
+        ["SHIB"] = "🐕"
     };
 
     protected override async Task OnInitializedAsync()
@@ -61,16 +134,30 @@ else
         await SelectCoinAsync(selectedCoin);
     }
 
+    private async Task RefreshAsync()
+    {
+        await LoadChartDataAsync(selectedCoin);
+    }
+
     private async Task SelectCoinAsync(string coin)
     {
         selectedCoin = coin;
         await LoadChartDataAsync(coin);
     }
 
+    private string FormatPrice(decimal price)
+    {
+        if (price < 0.001m) return "$" + price.ToString("F8");
+        if (price < 1m) return "$" + price.ToString("F4");
+        if (price < 1000m) return "$" + price.ToString("F2");
+        return "$" + price.ToString("N0");
+    }
+
     private async Task LoadChartDataAsync(string coin)
     {
         isLoading = true;
         hasError = false;
+        priceInfo = null;
         StateHasChanged();
 
         try
@@ -98,6 +185,9 @@ else
                 {
                     yearlyValues[currentYearKey] = apiCurrentYearValues;
                 }
+
+                priceInfo = await TryGetPriceInfoAsync(coinApiId);
+                lastUpdated = DateTime.UtcNow;
             }
 
             var firstYear = 2022;
@@ -156,7 +246,8 @@ else
     {
         if (shouldRenderChart && chartConfig is not null)
         {
-            await JS.InvokeVoidAsync("renderChart", "priceChart", chartConfig);
+            var isDark = await JS.InvokeAsync<bool>("darkMode.isDark");
+            await JS.InvokeVoidAsync("renderChart", "priceChart", chartConfig, isDark);
             shouldRenderChart = false;
         }
     }
@@ -231,5 +322,42 @@ else
         {
             return null;
         }
+    }
+
+    private static async Task<PriceInfo?> TryGetPriceInfoAsync(string coinApiId)
+    {
+        try
+        {
+            var url = $"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={coinApiId}&price_change_percentage=24h";
+            using var apiClient = new HttpClient();
+            using var response = await apiClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode) return null;
+
+            using var stream = await response.Content.ReadAsStreamAsync();
+            using var json = await JsonDocument.ParseAsync(stream);
+            var arr = json.RootElement;
+            if (arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() == 0) return null;
+
+            var item = arr[0];
+            return new PriceInfo
+            {
+                CurrentPrice = item.TryGetProperty("current_price", out var cp) ? cp.GetDecimal() : 0,
+                Change24h = item.TryGetProperty("price_change_percentage_24h", out var ch) ? (decimal)ch.GetDouble() : 0,
+                High24h = item.TryGetProperty("high_24h", out var hi) ? hi.GetDecimal() : 0,
+                Low24h = item.TryGetProperty("low_24h", out var lo) ? lo.GetDecimal() : 0
+            };
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private class PriceInfo
+    {
+        public decimal CurrentPrice { get; set; }
+        public decimal Change24h { get; set; }
+        public decimal High24h { get; set; }
+        public decimal Low24h { get; set; }
     }
 }

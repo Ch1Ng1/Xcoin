@@ -1,9 +1,16 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@inject IJSRuntime JS
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">XCoinBlazor</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+        <a class="navbar-brand" href="">XCoin</a>
+        <div class="d-flex align-items-center gap-2">
+            <button class="dark-mode-toggle" @onclick="ToggleDarkModeAsync" title="Toggle dark mode">
+                @(isDarkMode ? "☀️ Light" : "🌙 Dark")
+            </button>
+            <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -19,11 +26,26 @@
 
 @code {
     private bool collapseNavMenu = true;
+    private bool isDarkMode = false;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            isDarkMode = await JS.InvokeAsync<bool>("darkMode.isDark");
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleDarkModeAsync()
+    {
+        isDarkMode = await JS.InvokeAsync<bool>("darkMode.toggle");
     }
 }
