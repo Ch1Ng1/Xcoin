@@ -94,7 +94,8 @@ else
         ["SOLANA"] = "data/solana-month-stats.json",
         ["XRP"] = "data/xrp-month-stats.json",
         ["DOGE"] = "data/doge-month-stats.json",
-        ["SHIB"] = "data/shib-month-stats.json"
+        ["SHIB"] = "data/shib-month-stats.json",
+        ["QNT"] = "data/qnt-month-stats.json"
     };
     private readonly Dictionary<string, string> coinApiIds = new()
     {
@@ -103,7 +104,8 @@ else
         ["SOLANA"] = "solana",
         ["XRP"] = "ripple",
         ["DOGE"] = "dogecoin",
-        ["SHIB"] = "shiba-inu"
+        ["SHIB"] = "shiba-inu",
+        ["QNT"] = "quant-network"
     };
     private readonly Dictionary<string, string> coinFullNames = new()
     {
@@ -112,7 +114,8 @@ else
         ["SOLANA"] = "Solana",
         ["XRP"] = "XRP",
         ["DOGE"] = "Dogecoin",
-        ["SHIB"] = "Shiba Inu"
+        ["SHIB"] = "Shiba Inu",
+        ["QNT"] = "Quant"
     };
     private readonly Dictionary<string, string> coinIcons = new()
     {
@@ -121,7 +124,8 @@ else
         ["SOLANA"] = "◎",
         ["XRP"] = "✕",
         ["DOGE"] = "Ð",
-        ["SHIB"] = "🐕"
+        ["SHIB"] = "🐕",
+        ["QNT"] = "🔷"
     };
 
     protected override async Task OnInitializedAsync()
