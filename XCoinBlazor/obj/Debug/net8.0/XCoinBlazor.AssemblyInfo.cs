@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("XCoinBlazor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9269d01b9995a42e20c8b048f4b4225a0d5d3425")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b80884da7ebac707dfc8eaea73c69297ce32c221")]
 [assembly: System.Reflection.AssemblyProductAttribute("XCoinBlazor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("XCoinBlazor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

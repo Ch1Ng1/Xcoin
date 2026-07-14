@@ -2062,9 +2062,6 @@ C:/xampp/htdocs/Xcoin/XCoinBlazor/obj/Debug/net8.0/compressed/z63u2502mo-cjmkbs5
 /home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/compressed/xfuegyjs1l-{0}-tptq2av103-tptq2av103.gz
 /home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/compressed/rts365ksem-{0}-lfu7j35m59-lfu7j35m59.gz
 /home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/compressed/ewynnlck2k-{0}-oyz0vx2fzb-oyz0vx2fzb.gz
-/home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/compressed/5agz1rirsf-{0}-mzovfqrvhj-mzovfqrvhj.gz
-/home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/compressed/exw889zj7g-{0}-q1lnd8j4nx-q1lnd8j4nx.gz
-/home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/compressed/z63u2502mo-{0}-q4rcel9kw7-q4rcel9kw7.gz
 /home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/staticwebassets.build.json
 /home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/staticwebassets.build.json.cache
 /home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/staticwebassets.development.json
@@ -2075,3 +2072,6 @@ C:/xampp/htdocs/Xcoin/XCoinBlazor/obj/Debug/net8.0/compressed/z63u2502mo-cjmkbs5
 /home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/refint/XCoinBlazor.dll
 /home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/XCoinBlazor.pdb
 /home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/ref/XCoinBlazor.dll
+/home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/compressed/5agz1rirsf-{0}-czix0jskkb-czix0jskkb.gz
+/home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/compressed/exw889zj7g-{0}-n7b5xnqh4y-n7b5xnqh4y.gz
+/home/runner/work/Xcoin/Xcoin/XCoinBlazor/obj/Debug/net8.0/compressed/z63u2502mo-{0}-gi3cur4vpp-gi3cur4vpp.gz
