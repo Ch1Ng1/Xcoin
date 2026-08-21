@@ -39,19 +39,26 @@ def main():
         boot = json.load(f)
 
     # Collect all resources with integrity hashes
-    def collect(obj, prefix=""):
+    SKIP_KEYS = {
+        "hash", "extensions", "libraryInitializers",
+        "modulesAfterConfigLoaded", "modulesAfterRuntimeReady",
+        "libraryStartupModules",
+    }
+
+    def collect(obj):
         items = {}
         if isinstance(obj, dict):
             for key, val in obj.items():
-                if isinstance(val, dict) and "hash" in val:
-                    items[key] = val["hash"]
-                elif isinstance(val, str) and val.startswith("sha256-"):
+                if key in SKIP_KEYS:
+                    continue
+                if isinstance(val, str) and val.startswith("sha256-"):
                     items[key] = val
                 elif isinstance(val, dict):
-                    items.update(collect(val, prefix))
+                    items.update(collect(val))
         return items
 
-    resources = collect(boot)
+    resources_obj = boot.get("resources", {})
+    resources = collect(resources_obj)
 
     for name, expected_hash in resources.items():
         filepath = os.path.join(FRAMEWORK, name)
