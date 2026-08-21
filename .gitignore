@@ -1,0 +1,14 @@
+# Build outputs
+bin/
+obj/
+build/
+publish*/
+publish_output/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Do NOT ignore docs/ (GitHub Pages output)
+!docs/

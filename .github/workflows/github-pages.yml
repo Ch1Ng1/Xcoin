@@ -26,8 +26,13 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Clean any build intermediates
+        run: rm -rf XCoinBlazor/bin XCoinBlazor/obj publish_output
+
       - name: Publish Blazor WASM
-        run: dotnet publish XCoinBlazor/XCoinBlazor.csproj -c Release -o ./publish_output
+        run: |
+          dotnet --version
+          dotnet publish XCoinBlazor/XCoinBlazor.csproj -c Release -o ./publish_output
 
       - name: Rewrite base href
         run: sed -i 's|<base href="/" />|<base href="/Xcoin/" />|g' ./publish_output/wwwroot/index.html
