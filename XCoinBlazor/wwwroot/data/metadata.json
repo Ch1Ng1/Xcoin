@@ -1,0 +1,37 @@
+{
+  "source": "Yahoo Finance (yfinance)",
+  "method": "monthly average of daily close prices, USD, UTC calendar months",
+  "generated_at": "2026-08-21T11:58:14Z",
+  "coverage": {
+    "BTC": {
+      "first": "2022-01",
+      "last": "2026-07"
+    },
+    "ETH": {
+      "first": "2022-01",
+      "last": "2026-07"
+    },
+    "SOL": {
+      "first": "2022-01",
+      "last": "2026-07"
+    },
+    "XRP": {
+      "first": "2022-01",
+      "last": "2026-07"
+    },
+    "DOGE": {
+      "first": "2022-01",
+      "last": "2026-07"
+    },
+    "SHIB": {
+      "first": "2022-01",
+      "last": "2026-07"
+    },
+    "QNT": {
+      "first": "2022-01",
+      "last": "2026-07"
+    }
+  },
+  "script": "scripts/update_price_data.py",
+  "commit": "c7328ac34380efaacd99d66179b464fd62b1af21"
+}
