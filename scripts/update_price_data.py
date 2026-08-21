@@ -145,10 +145,11 @@ def fetch_cryptocompare(symbol: str, start_ts: int, end_ts: int) -> dict[str, fl
     current_end = end_ts
     while current_end > start_ts:
         url = f"https://min-api.cryptocompare.com/data/v2/histoday?fsym={symbol}&tsym=USD&limit=2000&toTs={current_end}"
+        params = {}
         if api_key:
-            url += f"&api_key={api_key}"
+            params["api_key"] = api_key
         try:
-            resp = requests.get(url, timeout=30)
+            resp = requests.get(url, params=params, timeout=30)
             resp.raise_for_status()
             body = resp.json()
             if body.get("Response") != "Success":
@@ -172,7 +173,10 @@ def fetch_cryptocompare(symbol: str, start_ts: int, end_ts: int) -> dict[str, fl
                 break
             current_end = earliest - 1
         except Exception as e:
-            print(f"  CryptoCompare error for {symbol}: {e}")
+            err_msg = str(e)
+            if api_key:
+                err_msg = err_msg.replace(api_key, "***")
+            print(f"  CryptoCompare error for {symbol}: {err_msg}")
             break
     return all_data
 
