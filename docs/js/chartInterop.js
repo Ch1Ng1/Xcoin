@@ -1,7 +1,7 @@
 // Chart.js interop functions for Blazor
 let priceChart = null;
 
-window.renderChart = (canvasId, monthlyData, isDark) => {
+window.renderChart = (canvasId, monthlyData) => {
     const canvas = document.getElementById(canvasId);
     if (!canvas) {
         console.error('Chart canvas not found:', canvasId);
@@ -12,11 +12,6 @@ window.renderChart = (canvasId, monthlyData, isDark) => {
     if (priceChart) {
         priceChart.destroy();
     }
-
-    // Dark mode colors
-    const textColor = isDark ? '#e0e0e0' : '#212529';
-    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
-    const bgColor = isDark ? '#1e1e2e' : '#ffffff';
 
     // Prepare data for Chart.js
     const years = Object.keys(monthlyData).sort();
@@ -55,8 +50,6 @@ window.renderChart = (canvasId, monthlyData, isDark) => {
 
     // Create chart
     const ctx = canvas.getContext('2d');
-    canvas.style.backgroundColor = bgColor;
-
     priceChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -69,18 +62,14 @@ window.renderChart = (canvasId, monthlyData, isDark) => {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Cryptocurrency Monthly Average Prices (USD)',
-                    color: textColor,
+                    text: 'Cryptocurrency Monthly Average Prices',
                     font: {
                         size: 16
                     }
                 },
                 legend: {
                     display: true,
-                    position: 'top',
-                    labels: {
-                        color: textColor
-                    }
+                    position: 'top'
                 },
                 tooltip: {
                     mode: 'index',
@@ -92,14 +81,7 @@ window.renderChart = (canvasId, monthlyData, isDark) => {
                                 label += ': ';
                             }
                             if (context.parsed.y !== null) {
-                                const val = context.parsed.y;
-                                if (val < 0.001) {
-                                    label += '$' + val.toFixed(8);
-                                } else if (val < 1) {
-                                    label += '$' + val.toFixed(4);
-                                } else {
-                                    label += '$' + val.toLocaleString();
-                                }
+                                label += '$' + context.parsed.y.toLocaleString();
                             }
                             return label;
                         }
@@ -107,21 +89,13 @@ window.renderChart = (canvasId, monthlyData, isDark) => {
                 }
             },
             scales: {
-                x: {
-                    ticks: { color: textColor },
-                    grid: { color: gridColor }
-                },
                 y: {
                     beginAtZero: false,
                     ticks: {
-                        color: textColor,
                         callback: function(value) {
-                            if (value < 0.001) return '$' + value.toFixed(8);
-                            if (value < 1) return '$' + value.toFixed(4);
                             return '$' + value.toLocaleString();
                         }
-                    },
-                    grid: { color: gridColor }
+                    }
                 }
             }
         }
