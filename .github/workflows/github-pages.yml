@@ -1,1 +1,51 @@
+name: Build Docs for GitHub Pages
 
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish Blazor WASM
+        run: dotnet publish XCoinBlazor/XCoinBlazor.csproj -c Release -o ./publish_output
+
+      - name: Rewrite base href
+        run: sed -i 's|<base href="/" />|<base href="/Xcoin/" />|g' ./publish_output/wwwroot/index.html
+
+      - name: Replace docs folder
+        run: |
+          rm -rf ./docs
+          mkdir ./docs
+          cp -a ./publish_output/wwwroot/. ./docs/
+          touch ./docs/.nojekyll
+
+      - name: Verify docs integrity
+        run: python3 scripts/verify_docs_integrity.py
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A docs
+          git diff --cached --quiet || git commit -m "Publish docs to GitHub Pages"
+          git push
