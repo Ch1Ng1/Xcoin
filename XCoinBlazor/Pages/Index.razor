@@ -76,6 +76,10 @@ else
     <div class="chart-wrapper">
         <canvas id="priceChart"></canvas>
     </div>
+    @if (metadataCaption is not null)
+    {
+        <p class="text-muted text-center mt-2" style="font-size: 0.85rem;">@metadataCaption</p>
+    }
 }
 
 @code {
@@ -86,6 +90,7 @@ else
     private string selectedCoin = "BTC";
     private PriceInfo? priceInfo;
     private DateTime? lastUpdated;
+    private string? metadataCaption;
 
     private readonly Dictionary<string, string> coinDataFiles = new()
     {
@@ -130,7 +135,27 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadMetadataAsync();
         await LoadChartDataAsync(selectedCoin);
+    }
+
+    private async Task LoadMetadataAsync()
+    {
+        try
+        {
+            var meta = await Http.GetFromJsonAsync<JsonElement>("data/metadata.json");
+            var source = meta.TryGetProperty("source", out var s) ? s.GetString() : null;
+            var generatedAt = meta.TryGetProperty("generated_at", out var g) ? g.GetString() : null;
+            if (source is not null && generatedAt is not null)
+            {
+                var dateOnly = generatedAt.Length >= 10 ? generatedAt[..10] : generatedAt;
+                metadataCaption = $"Monthly average of daily prices in USD \u00B7 Source: {source} \u00B7 Historical data updated {dateOnly}";
+            }
+        }
+        catch
+        {
+            // metadata.json may not exist yet
+        }
     }
 
     private async Task OnSelectedCoinChangedAsync()
