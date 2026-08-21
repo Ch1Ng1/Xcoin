@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "XCoinBlazor",
   "resources": {
-    "hash": "sha256-MMtgM75qEO3DcE3So8M/awdpBk3RFAysJb9pnBebPMg=",
+    "hash": "sha256-lY/Hk3C1GdQ6Y/Lq+P2/gVDBiersmvspFCRV4Qj3C6I=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-dexsp+9ih2C28zVhNnPXUbkz2QCq7lHpkyDcmaLl7NQ="
     },
@@ -49,7 +49,7 @@
       "System.Text.Json.wasm": "sha256-m8No4lM4xs+UjZXkGqCBD9wgPSTJIXmKVPyPh2+rLDA=",
       "System.Text.RegularExpressions.wasm": "sha256-79rD56wmpNJvLcJQhHY1Cy5nfIFTEEwYf0QjBbSgNNE=",
       "System.Private.CoreLib.wasm": "sha256-fA/l9LNMKMiJyoW2Z541h2hDR6hgbFiyTNoPyGpmYQQ=",
-      "XCoinBlazor.wasm": "sha256-Ko7o3d4qB29OgK/xTL51AEjGYS39HASTCnOVE4AgvZg="
+      "XCoinBlazor.wasm": "sha256-LhH50MBUeaB3tGgo4KTlF70Q+R1NgQ5X+8XWzpvxCBk="
     }
   },
   "cacheBootResources": true,
