@@ -201,9 +201,7 @@ def validate(all_monthly: dict[str, dict[str, dict[int, float]]],
     """Run all validation checks; return list of error messages."""
     errors: list[str] = []
     now = datetime.now(timezone.utc)
-    last_complete_year = now.year - 1 if now.month == 1 else now.year
-    if now.month > 1:
-        last_complete_year = now.year
+    last_complete_year = now.year - 1
 
     # Monthly average checks
     for coin, year, month, expected, tol in MONTHLY_AVG_CHECKS:
@@ -212,7 +210,6 @@ def validate(all_monthly: dict[str, dict[str, dict[int, float]]],
         if year_str not in monthly or month not in monthly[year_str]:
             errors.append(f"Missing {coin} {year}-{month:02d} for monthly avg check")
             continue
-        actual = monthly[coin] if isinstance(monthly, dict) else None
         actual = all_monthly[coin].get(str(year), {}).get(month)
         if actual is None:
             errors.append(f"Missing {coin} {year}-{month:02d}")
@@ -259,7 +256,7 @@ def validate(all_monthly: dict[str, dict[str, dict[int, float]]],
                 if val <= 0:
                     errors.append(f"{coin} {year_str}-{month:02d} has non-positive price {val}")
             # Check completeness for full years
-            if year_int >= FIRST_YEAR and year_int < now.year:
+            if year_int >= FIRST_YEAR and year_int <= last_complete_year:
                 if len(months) != 12:
                     errors.append(f"{coin} {year_str} has {len(months)} months, expected 12")
             elif year_int == now.year and now.month == 12:
@@ -392,7 +389,6 @@ def main() -> int:
 
         for year_str in sorted_years:
             months = monthly[year_str]
-            sorted_months = sorted(months.keys())
             # Only write consecutive months starting from 1
             values = []
             for m in range(1, 13):
@@ -403,8 +399,8 @@ def main() -> int:
             if values:
                 output[year_str] = values
                 if first_month_str is None:
-                    first_month_str = f"{year_str}-{sorted_months[0]:02d}"
-                last_month_str = f"{year_str}-{sorted_months[-1]:02d}"
+                    first_month_str = f"{year_str}-01"
+                last_month_str = f"{year_str}-{len(values):02d}"
 
         coverage[coin] = {"first": first_month_str or "", "last": last_month_str or ""}
 
